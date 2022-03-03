@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import _ from 'lodash';
 
 
-function PlayerStats () {
+function Players () {
 
     const [players, setPlayers] = useState([]);
     const [ playerStats , setPlayerStats ] = useState([]);
@@ -103,7 +103,7 @@ function PlayerStats () {
     return (
 
         <div className='playerStats'>
-            <h1> Je suis sur la page player stats </h1>
+            <h1> Je suis sur la page players </h1>
 
             <input 
                 type="text" 
@@ -141,10 +141,8 @@ function PlayerStats () {
                 })}
             </div>
         </div>
-    
-
     )
 };
 
 
-export default PlayerStats;
+export default Players;

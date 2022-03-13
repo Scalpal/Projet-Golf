@@ -21,6 +21,22 @@ div#root
 }
 /*  */
 
+/* Main div contenu */
+div.inner-container
+{
+  display: flex;
+  flex-direction: column;
+
+  min-height: 90vh;
+  height: fit-content;
+  border-radius: 5px;
+  padding: 15px;
+  background-color: white;
+
+  -webkit-box-shadow: 0px 0px 4px 0px #000000; 
+  box-shadow: 0px 0px 4px 0px #000000;
+}
+/*  */
 
 
 
@@ -37,7 +53,8 @@ nav
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-
+  
+  border-right: 2px solid grey;
   background-color: rgb(121,160,243);
 }
 
@@ -103,6 +120,24 @@ nav a
 /*  */
 
 
+/* Login page */
+div.login
+{
+  width: 100%;
+
+  background-color: rgb(230, 230, 230);
+  padding: 25px 25px;
+}
+
+div.login
+h1.main-login-title
+{
+  text-align: center;
+  font-weight: 500;
+}
+/*  */
+
+
 
 
 
@@ -163,20 +198,6 @@ div.tournamentRanking
   padding: 25px 25px;
 }
 
-div.tournamentRanking-container
-{
-  display: flex;
-  flex-direction: column;
-
-  min-height: 90vh;
-  height: fit-content;
-  border-radius: 5px;
-  padding: 15px;
-  background-color: white;
-
-  -webkit-box-shadow: 0px 0px 4px 0px #000000; 
-  box-shadow: 0px 0px 4px 0px #000000;
-}
 
 div.unselected-container
 {
@@ -198,7 +219,7 @@ h1.unselected-title
   padding: 10px;
 }
 
-div.tournamentRanking h1.main-title
+h1.main-title
 {
   font-weight: 500;
   margin-top: 15px;
@@ -353,7 +374,6 @@ div.TR-body
 
 div.TR-row
 {
-  /* border: 1px solid black; */
   border-radius: 10px;
   display:flex;
   flex-direction: row;
@@ -405,26 +425,207 @@ div.TR-th-container h4:last-child
 
 
 
-/* PlayerStats page */
-div.playerStats
+/* Players page */
+div.players
 {
   width: 100%;
+
+  background-color: rgb(230, 230, 230);
+  padding: 25px 25px;
 }
 
-div.playerStats
+div.players 
+input[type="text"]
+{
+  padding: 7px 10px;
+  font-size: 1.2em;
+  margin: 20px auto 30px auto;
+  margin-bottom: 30px;
+  width: 30%;
+  border-radius: 15px;
+  border: 2px solid grey;
+}
+
+div.players 
+input[type="text"]:active
+{
+  border: 2px solid rgb(121,160,243);
+}
+
+div.players
 div.card-container
 {
-  width: 100%;
   display: flex;
   justify-content: space-around;
-  border: 2px solid blue;
+  flex-wrap: wrap;
+  padding: 0 15px 30px 15px;
 }
 
-div.playerStats
-div.card-container > *
+div.players
+div.card-container > div
 {
-  border: 2px solid red;
-  width: 20%;
+  display:flex;
+  justify-content: space-around;
+  width: 100%;
+}
+
+div.players
+div.card-container > div.card
+{
+  border-radius: 15px !important;
+  width: 35% !important ;
+  margin-top: 30px ;
+  padding: 0px !important;
+  box-shadow: 0 8px 32px 0 rgba( 31, 38, 135, 0.37 ) !important;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-self: flex-start;
+
+  animation-name: fadeIn;
+  animation-duration: 700ms;
+
+  position: relative;
+}
+
+div.background-color-block-top
+{
+  background-color: rgb(121,160,243);
+  position: absolute;
+  top: 0;
+
+  height: 120px;
+  width: 100%;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+/* Contenu de la card */
+div.placeholder-picture
+{
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  margin-top: 15px;
+}
+
+div.placeholder-picture img{
+  height: auto;
+  width: 90%;
+  margin: 0 auto;
+  border-radius: 15px;
+  z-index: 2;
+  border: 2px solid rgb(121,160,243);
+}
+
+
+div.players
+div.card > div.playerInfos-container 
+{
+  border-radius: 5px;
+  font-family: 'Noto Sans JP', sans-serif;
+  padding: 0 0px 10px 0px;
+  text-align: center;
+  z-index: 3;
+}
+
+div.players
+div.playerInfos-container h2
+{
+  font-size: 1.7em;
+  font-weight: 700;
+  margin: 5px 0;
+  padding: 0;
+}
+
+div.card > div.playerInfos-container > div.side-side-blocks
+{
+  display: flex;
+}
+
+div.card > div.playerInfos-container > div.side-side-blocks > * 
+{
+  width: 50%;
+  text-align: center;
+  margin-bottom: 15px;
+  font-size: 0.9em;
+}
+
+div.card > div.playerInfos-container > div.side-side-blocks > div:first-child
+{
+  border-right: 2px solid black;
+}
+
+div.players
+div.card > div.playerInfos-container h3
+{
+  font-weight: 100;
+  margin: 0px;
+  font-size: 0.9em;
+}
+
+div.players
+div.card 
+div.separator 
+{
+  width: 90%;
+  height: 2px;
+  background-color: grey;
+  margin-top: 20px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Bloc details */
+details[open] summary ~ * {
+  animation: sweep .5s ease-in-out;
+}
+
+div.players
+div.card > details
+{
+  text-align: center;
+  width: 100%;
+  margin: 20px 0;
+}
+
+div.players
+div.card > details summary
+{
+  width: fit-content;
+  list-style: none;
+  margin: 0 auto;
+  padding: 5px 10px;
+  background-color: rgb(214, 214, 214);
+  border-radius: 8px;
+}
+
+summary::after {
+  content: ' ►';
+}
+details[open] summary:after {
+  content: "  ▼";
+}
+
+div.players
+div.card > details > div.tournamentsWon-container
+{
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  flex-wrap: wrap;
+
+  padding-top: 25px;
+}
+
+div.players
+div.card > details > div.tournamentsWon-container
+{
+  margin: 10px 0;
+  font-weight: 500;
+  padding: 0 10px;
 }
 
 /*  */
@@ -434,7 +635,69 @@ div.card-container > *
 div.tournaments
 {
   width: 100%;
+
+  background-color: rgb(230, 230, 230);
+  padding: 25px 25px;
 }
+
+div.tournaments
+div.tournament-card
+{
+  border: 2px solid grey;
+  border-radius: 15px;
+  background-color: grey;
+
+  margin-left: 10px;
+  margin-right: 10px;
+  margin-bottom: 20px;
+
+  background-image: url("components/assets/masters-golf.jpeg");
+  background-position: center;
+  background-size: 100% ;
+  background-repeat: no-repeat;
+}
+
+div.tournaments 
+div.tournament-card h2:first-child
+{
+  font-weight: 600;
+  text-align: left;
+  color: white;
+}
+
+div.tournaments 
+div.tournament-card h3
+{
+  font-weight: 500;
+  text-align:center;
+}
+
+div.tournaments 
+div.tournament-card p.tournament-description
+{
+  margin: 0 auto;
+  width: 95%;
+}
+
+div.tournaments
+div.tournament-card details
+{
+  text-align: center;
+}
+
+div.tournaments
+div.tournament-card details summary
+{
+  list-style:none;
+}
+
+div.tournaments 
+div.tournament-card p.course-description
+{
+  margin: 0 auto;
+  width: 80%;
+}
+
 div.tournaments 
 table
 {
@@ -458,6 +721,16 @@ td
 /*  */
 
 
+/* addAdmin page */
+div.addAdmin 
+{
+  width: 100%;
+
+  background-color: rgb(230, 230, 230);
+  padding: 25px 25px;
+}
+/*  */
+
 
 
 
@@ -472,4 +745,9 @@ td
     opacity: 1;
     transform: translateY(0px);
   }
+}
+
+@keyframes sweep {
+  0%    {opacity: 0; margin-left: -10px}
+  100%  {opacity: 1; margin-left: 0px}
 }

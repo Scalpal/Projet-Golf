@@ -18,7 +18,7 @@ function TournamentRanking () {
     useEffect(async () => {
         document.title = "InfoGolf - Classements par tournoi";
         
-        const result = await Axios.get('http://localhost:3001/tournamentRanking')
+        const result = await Axios.get('http://localhost:3001/tournamentRanking');
 
         setTournaments(result.data.tournaments)
         setTournamentsInfo(result.data.tournamentsInfo)
@@ -132,9 +132,8 @@ function TournamentRanking () {
     // console.log(activeCategory)
 
     return (
-
         <div className='tournamentRanking'>
-            <div className='tournamentRanking-container'>
+            <div className='inner-container'>
                 <h1 className='main-title'> Classements par tournoi </h1>
 
                 <ul className='separator-list'>
@@ -223,7 +222,7 @@ function TournamentRanking () {
                     )
                 }
             </div>
-        </div>            
+        </div>         
     )
 };
 

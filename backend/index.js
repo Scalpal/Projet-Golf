@@ -143,7 +143,9 @@ app.get("/tournaments", async(req, res) => {
     }
 })
 
-// Connexion admin
+
+
+// A dmin
 app.post("/admin/login", async(req,res) => {
     try {
         const db = await getConnection();
@@ -165,7 +167,7 @@ app.post("/admin/login", async(req,res) => {
                     const adminInfo = await db.query('SELECT idAdmin, login FROM admin WHERE idAdmin = ? AND login = ?', [adminObject.idAdmin, adminObject.login]);
                     const adminInfosObject = adminInfo[0][0];
                     res.send(adminInfosObject);
-                    
+
                 }else{
                     res.send({message: "Mauvais login ou mot de passe"});
                 }

@@ -1,20 +1,40 @@
-const express = require('express')
-const bodyParser = require('body-parser')
+const express = require('express');
 const cors = require ('cors')
 const app = express()
 const mysql = require('mysql2/promise')
 const bcrypt = require('bcrypt')
 const saltRounds = 10;
 
+const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
+const session = require('express-session');
+
 var _ = require('lodash');
 
 // Necessary
 app.use(express.json())
-app.use(cors())
+app.use(cors({
+        origin: ["http://localhost:3000"],
+        methods: ["GET", "POST"],
+        credentials: true
+    })
+);
+
+app.use(cookieParser());
 app.use(bodyParser.urlencoded({extended: true}));
 
+app.use(session({
+        key: "userId",
+        secret: "subscribe",
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+            expires: 60*60*24*1000,
+        },
+    })
+);
 
-
+// Fonction pour créer la connexion avec la base de données
 const getConnection = async () => {
     const db = await mysql.createConnection({
         host: "localhost",
@@ -24,6 +44,15 @@ const getConnection = async () => {
     });
     return db;
 }
+
+
+
+
+
+
+
+
+
 
 app.get("/dashboard", async (req, res) => {
     try {
@@ -145,27 +174,25 @@ app.get("/tournaments", async(req, res) => {
 
 
 
-// A dmin
+// Admin
 app.post("/admin/login", async(req,res) => {
     try {
         const db = await getConnection();
 
         const login = req.body.login;
         const password = req.body.password;
-
-        console.log(login);
-        console.log(password);
     
         const admin = await db.query('SELECT * FROM admin WHERE login= ?', login);
-        const adminArray = admin[0];
+        const adminArray = admin[0]
         const adminObject = adminArray[0];
     
         if(adminArray.length > 0){
             bcrypt.compare(password, adminObject.password, async(error, result) => {
-
                 if(result){
                     const adminInfo = await db.query('SELECT idAdmin, login FROM admin WHERE idAdmin = ? AND login = ?', [adminObject.idAdmin, adminObject.login]);
                     const adminInfosObject = adminInfo[0][0];
+
+                    req.session.user = adminInfosObject;
                     res.send(adminInfosObject);
 
                 }else{
@@ -178,6 +205,15 @@ app.post("/admin/login", async(req,res) => {
     }catch(error) {
         console.log("ON A UNE ERREUR");
         res.send({message: "Il y a une erreur de connexion "});
+    }
+});
+
+app.get('/admin/login', (req,res) => {
+
+    if(req.session.user){
+        res.send({loggedIn: true, user: req.session.user});
+    }else{
+        res.send({loggedIn: false });
     }
 });
 
@@ -201,18 +237,6 @@ app.post("/admin/register", async(req,res) => {
         }
     })
 })
-
-
-// app.put("/admin/players/add", async(req, res) => {
-//     try {
-        
-
-
-//     } catch (err) {
-//         console.log(err)
-//     }
-// })
-
 
 
 

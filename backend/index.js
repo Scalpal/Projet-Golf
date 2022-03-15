@@ -1,9 +1,10 @@
 const express = require('express');
-const cors = require ('cors')
-const app = express()
-const mysql = require('mysql2/promise')
-const bcrypt = require('bcrypt')
+const cors = require ('cors');
+const app = express();
+const mysql = require('mysql2/promise');
+const bcrypt = require('bcrypt');
 const saltRounds = 10;
+
 
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
@@ -12,7 +13,7 @@ const session = require('express-session');
 var _ = require('lodash');
 
 // Necessary
-app.use(express.json())
+app.use(express.json());
 app.use(cors({
         origin: ["http://localhost:3000"],
         methods: ["GET", "POST"],
@@ -24,8 +25,8 @@ app.use(cookieParser());
 app.use(bodyParser.urlencoded({extended: true}));
 
 app.use(session({
-        key: "userId",
-        secret: "subscribe",
+        key: "admin",
+        secret: "pascalBeaugosse",
         resave: false,
         saveUninitialized: false,
         cookie: {
@@ -43,7 +44,9 @@ const getConnection = async () => {
         database: "projet_golf",
     });
     return db;
-}
+};
+
+
 
 
 
@@ -64,7 +67,7 @@ app.get("/dashboard", async (req, res) => {
         const db = await getConnection();
 
         const tournamentsResults = await db.query("SELECT  * FROM tournoi");
-        finalResult.tournaments = tournamentsResults[0]
+        finalResult.tournaments = tournamentsResults[0];
 
         const playerResults = await db.query("SELECT * FROM joueur");
         finalResult.players = playerResults[0]
@@ -73,7 +76,7 @@ app.get("/dashboard", async (req, res) => {
             const playerPointsResults = 
             await db.query(`SELECT IdJoueur, SUM(nbCoups) AS nombreCoups, SUM(nbPoints) AS nombrePoints FROM Jouer WHERE AnneeSaison = ${tournamentsResults[0][i].AnneeSaison} AND IdTournoi = ${tournamentsResults[0][i].IdTournoi} GROUP BY IdJoueur ORDER BY SUM(nbPoints) DESC`);
 
-            console.log(playerPointsResults)
+            // console.log(playerPointsResults)
             finalResult.playersPoints.push(playerPointsResults[0]) 
         } 
 
@@ -115,7 +118,7 @@ app.get("/tournamentRanking", async (req, res) => {
         const finalArray = await Promise.all(tournamentsData.map(async(tournament) => {
 
             const playersScoreForTournament = 
-            await db.query(`SELECT IdJoueur, IdTournoi, AnneeSaison, SUM(nbCoups) AS nombreCoups, SUM(nbPoints) AS nombrePoints FROM Jouer WHERE AnneeSaison = ${tournament.AnneeSaison} AND IdTournoi = ${tournament.IdTournoi} GROUP BY IdJoueur ORDER BY SUM(nbPoints) DESC`);
+            await db.query(`SELECT IdJoueur, IdTournoi, AnneeSaison, SUM(nbCoups) AS nombreCoups, SUM(nbPoints) AS nombrePoints FROM Jouer WHERE AnneeSaison = ${tournament.AnneeSaison} AND IdTournoi = ${tournament.IdTournoi} GROUP BY IdJoueur ORDER BY SUM(nbPoints) ASC`);
 
             return playersScoreForTournament[0];
         }))
@@ -126,7 +129,7 @@ app.get("/tournamentRanking", async (req, res) => {
 
         finalResult.playersPoints = playersScoreSorted;
 
-        res.send(finalResult)
+        res.send(finalResult);
     }
     catch (err) {
         console.log("ON A UNE ERREUR")
@@ -165,7 +168,7 @@ app.get("/tournaments", async(req, res) => {
 
         finalResult.holes = sortedArray;
 
-        res.send(finalResult)
+        res.send(finalResult);
     }catch(err){
         console.log("ON A UNE ERREUR")
         console.error(err)
@@ -183,7 +186,7 @@ app.post("/admin/login", async(req,res) => {
         const password = req.body.password;
     
         const admin = await db.query('SELECT * FROM admin WHERE login= ?', login);
-        const adminArray = admin[0]
+        const adminArray = admin[0];
         const adminObject = adminArray[0];
     
         if(adminArray.length > 0){
@@ -194,7 +197,6 @@ app.post("/admin/login", async(req,res) => {
 
                     req.session.user = adminInfosObject;
                     res.send(adminInfosObject);
-
                 }else{
                     res.send({message: "Mauvais login ou mot de passe"});
                 }
@@ -217,6 +219,23 @@ app.get('/admin/login', (req,res) => {
     }
 });
 
+app.post('/admin/logout', (req, res) => {
+    console.log(req.cookies.admin);
+
+    if(req.cookies.admin){
+        res.clearCookie("admin");
+        res.send({
+            loggedState: false,
+        });
+    }else{
+        res.send({
+            loggedState: true,
+        })
+    }
+
+
+})
+
 
 app.post("/admin/register", async(req,res) => {
 
@@ -235,16 +254,24 @@ app.post("/admin/register", async(req,res) => {
         } catch (error) {
             res.send({ message: "ERREUR"})
         }
-    })
+    });
 })
 
+app.get("admin/addScores", async(req,res) => {
 
+    const db = await getConnection();
+
+    const finalResult = {
+        players: [],
+        tournaments: [],
+    }
+})
 
 
 
 
 app.listen(3001, () => {
     console.log("running on port 3001");
-})
+});
 
-console.log('ça fonctionne')
+console.log('ça fonctionne');

@@ -1,11 +1,21 @@
 import React, { useContext } from 'react';
-import { Link } from 'react-router-dom';
+import { Link , useNavigate } from 'react-router-dom';
 import logo from '../assets/logo3.png';
 import { LoginContext } from '../Helper/LoginContext';
+import Axios from 'axios';
 
 function Navbar() {
 
-    const { isLoggedIn } = useContext(LoginContext);
+    const { isLoggedIn , setIsLoggedIn } = useContext(LoginContext);
+
+    const navigate = useNavigate();
+
+    const logout = async() => {
+        const logState = await Axios.post('http://localhost:3001/admin/logout');
+
+        setIsLoggedIn(logState.data.loggedState);
+        navigate('/dashboard');
+    }
 
     return (
         <nav> 
@@ -39,17 +49,26 @@ function Navbar() {
 
                         <p> Gestion des tournois </p>
                         <Link to="/admin/tournament/create"> Création d'un tournoi </Link>
-                        <Link to="/admin/tournament/score"> Ajouter des scores sur un tournoi </Link>
+                        <Link to="/admin/addScores"> Ajouter des scores sur un tournoi </Link>
 
                         <p> Gestion des administrateurs </p>
-                        <Link to="/admin/addAdmin"> Ajouter un compte administrateur </Link>
+                        <Link to="/admin/register"> Ajouter un compte administrateur </Link>
                     </React.Fragment>
 
                 )}
             </div>
 
             <div>
-                <Link to="/admin/login"> Connexion administrateur </Link>
+                {isLoggedIn ? (
+                    <button 
+                        className='logout-button'
+                        onClick={logout}
+                    > 
+                        Se déconnecter 
+                    </button>
+                ) : (
+                    <Link to="/admin/login"> Connexion administrateur </Link>
+                )}
             </div>
         </nav>
         

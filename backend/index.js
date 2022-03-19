@@ -46,6 +46,32 @@ const getConnection = async () => {
     return db;
 };
 
+function getDatesInRange(startDate, endDate) {
+    const date = new Date(startDate.getTime());
+  
+    const dates = [];
+  
+    while (date <= endDate) {
+      dates.push(new Date(date));
+      date.setDate(date.getDate() + 1);
+    }
+  
+    return dates;
+}
+
+function doTournamentsExist () {
+
+}
+
+function checkDates (datesArray) {
+
+    while(datesArray.length !== 9){
+        datesArray.push(datesArray[datesArray.length-1]);
+    }
+
+}
+
+
 
 
 
@@ -118,7 +144,7 @@ app.get("/tournamentRanking", async (req, res) => {
         const finalArray = await Promise.all(tournamentsData.map(async(tournament) => {
 
             const playersScoreForTournament = 
-            await db.query(`SELECT IdJoueur, IdTournoi, AnneeSaison, SUM(nbCoups) AS nombreCoups, SUM(nbPoints) AS nombrePoints FROM Jouer WHERE AnneeSaison = ${tournament.AnneeSaison} AND IdTournoi = ${tournament.IdTournoi} GROUP BY IdJoueur ORDER BY SUM(nbPoints) ASC`);
+            await db.query(`SELECT IdJoueur, IdTournoi, AnneeSaison, SUM(nbCoups) AS nombreCoups, SUM(nbPoints) AS nombrePoints FROM Jouer WHERE AnneeSaison = ${tournament.AnneeSaison} AND IdTournoi = ${tournament.IdTournoi} GROUP BY IdJoueur ORDER BY SUM(nbPoints) DESC`);
 
             return playersScoreForTournament[0];
         }))
@@ -168,12 +194,19 @@ app.get("/tournaments", async(req, res) => {
 
         finalResult.holes = sortedArray;
 
+        console.log(sortedArray);
+
         res.send(finalResult);
     }catch(err){
         console.log("ON A UNE ERREUR")
         console.error(err)
     }
 })
+
+
+
+
+
 
 
 
@@ -229,13 +262,10 @@ app.post('/admin/logout', (req, res) => {
         });
     }else{
         res.send({
-            loggedState: true,
+            loggedState: false,
         })
     }
-
-
 })
-
 
 app.post("/admin/register", async(req,res) => {
 
@@ -255,16 +285,218 @@ app.post("/admin/register", async(req,res) => {
             res.send({ message: "ERREUR"})
         }
     });
+});
+
+app.get("/admin/player/list", async(req,res) => {
+    const db = await getConnection();
+
+    const players = await db.query('SELECT * FROM joueur');
+
+    res.send(players[0]);
+});
+
+app.post("/admin/player/edit", async(req, res) => {
+    const db = await getConnection();
+
+    const idPlayer = req.body.idJoueur;
+
+    try {
+        const player = await db.query('SELECT * FROM joueur WHERE IdJoueur = ?', idPlayer);
+
+        res.send(player[0]);
+    } catch (error) {
+        console.log(error)
+    }
 })
 
-app.get("admin/addScores", async(req,res) => {
+app.get("/admin/tournament/create", async(req, res) => {
+
+    const db = await getConnection();
+
+    const finalResult = {
+        seasons: [],
+        tournaments: []
+    }
+
+    const seasons = await db.query('SELECT * FROM Saison');
+    finalResult.seasons = seasons[0];
+
+    const tournaments = await db.query('SELECT DISTINCT nomTournoi from tournoi;');
+    finalResult.tournaments = tournaments[0];
+
+    res.send(finalResult);
+})
+
+app.post("/admin/tournament/create", async(req, res) => {
+
+    const db = await getConnection();
+
+    const tournamentName = req.body.tournamentName;
+    const year = req.body.year;
+
+    try {
+        const tournaments = await db.query('SELECT * FROM tournoi WHERE nomTournoi = ?', tournamentName);
+        const tournamentData = tournaments[0];
+
+        // Récupération simple des infos du tournoi 
+        const tournamentYear = tournamentData[0].AnneeSaison;
+        const tournamentId = tournamentData[0].IdTournoi;
+        const tournamentDateBegin = tournamentData[0].dateDebut;
+        const tournamentDateEnd = tournamentData[0].dateFin;
+        const tournamentIdCourse = tournamentData[0].IdParcours;
+        const tournamentPlace = tournamentData[0].lieu;
+        const tournamentDescription = tournamentData[0].description;
+
+        // Création de la date de début et de fin du tournoi avec l'année choisie 
+        const beginDateObject = new Date(tournamentDateBegin);
+        const endDateObject = new Date(tournamentDateEnd);
+        const newBeginDate = new Date(year, beginDateObject.getMonth(), beginDateObject.getDate());
+        const newEndDate = new Date(year, endDateObject.getMonth(), endDateObject.getDate());
+    
+        const doTournamentExist = () => {
+
+            let check = false;
+
+            tournamentData.map((tournament) => {
+                if(tournament.AnneeSaison === year){
+                    check = true;
+                    return check;
+                }else{
+                    check=check;
+                }
+            })
+            return check;
+        }
+
+        const doExist = doTournamentExist();
+        console.log(doExist);
+
+        if (!doExist){
+            const insertTournament = 
+            await db.query("INSERT INTO tournoi (AnneeSaison, IdTournoi, nomTournoi, dateDebut, dateFin, IdParcours, lieu, description) VALUES (?,?,?,?,?,?,?,?)", 
+            [year, tournamentId, tournamentName, newBeginDate, newEndDate, tournamentIdCourse,tournamentPlace, tournamentDescription]);
+    
+            // Dates entre la date de début et de fin du tournoi
+            const dates = getDatesInRange(newBeginDate, newEndDate);
+    
+            dates.map(async(date, index) => {
+                const day = index+1;
+                console.log('ajout dans date !')
+    
+                const insertDate = await db.query('INSERT INTO date (AnneeSaison, IdTournoi, Jour, date) VALUES (?, ?, ?, ?)', [year, tournamentId, day, date]);
+            });
+
+            res.send({message: "L'ajout s'est déroulé avec succès !"});
+        }else{
+            res.send({message: "Le tournoi pour cette année choisie existe déjà !"});
+        }
+    } catch (error) {
+        console.log(error);
+    }
+})
+
+
+
+app.get("/admin/tournament/addScores", async(req,res) => {
 
     const db = await getConnection();
 
     const finalResult = {
         players: [],
         tournaments: [],
+        holes: [],
+        holeColors: []
     }
+
+    const players = await db.query("SELECT * FROM joueur;");
+    finalResult.players = players[0];
+
+    const tournaments = await db.query("SELECT * FROM tournoi ORDER BY IdTournoi ASC");
+    const groupedTourn = _.groupBy(tournaments[0], 'nomTournoi');
+    const sortedTournaments = _.values(groupedTourn);
+
+    finalResult.tournaments = sortedTournaments;
+
+
+
+    const holes = await db.query("SELECT * FROM trou");
+    const holesData = holes[0]; 
+    const groupedHoles = _.groupBy(holesData, 'IdParcours'); // groupage des trous par Parcours
+    const sortedHolesArray = _.values(groupedHoles); // Transformation des groupes en tableaux de trous par parcours
+
+    // Trous triés par parcours 
+    const sortedArray = await Promise.all(sortedHolesArray.map(async(holesArray) => {
+        const sortedHolesByColor = _.groupBy(holesArray, 'Couleur');
+        const finalArray = _.values(sortedHolesByColor)
+
+        return finalArray;
+    }));
+    finalResult.holes = sortedArray;
+
+    const holeColors = await db.query('SELECT DISTINCT Couleur FROM trou;');
+    finalResult.holeColors = holeColors[0];
+
+    res.send(finalResult);
+});
+
+app.post('/admin/tournament/addScores', async(req,res) => {
+    const db = await getConnection();
+
+    // Données récupérée du front 
+    const idTournament = req.body.idTournament;
+    const yearTournament = req.body.yearTournament;
+    const idPlayer = req.body.idPlayer;
+    const holeColor = req.body.holeColor;
+    const scores = req.body.score;  //Tableau des nombre de coups de chaque trous
+
+    console.log(idTournament)
+    console.log(yearTournament)
+    console.log(idPlayer)
+    console.log(holeColor)
+    console.log(scores)
+
+    const newScores= [];
+    scores.map((score) => {
+        const intScore = parseInt(score);
+        newScores.push(intScore);
+    })
+
+    console.log(newScores);
+
+    const tournament = await db.query('SELECT * FROM tournoi WHERE IdTournoi = ? AND AnneeSaison = ? ', [idTournament, yearTournament]);
+    const tournamentData = tournament[0][0];
+    const dateDebut = tournamentData.dateDebut;
+    const dateFin = tournamentData.dateFin;
+    const idParcours = tournamentData.IdParcours;
+
+
+    const selectedHoles = await db.query("SELECT * FROM trou WHERE IdParcours = ? AND Couleur = ? ", [idParcours, holeColor]);
+
+    try {
+        const participate = await db.query("INSERT INTO participer (AnneeSaison, IdTournoi, IdJoueur) VALUES( ? , ? , ?)", [yearTournament, idTournament, idPlayer]);
+        
+        newScores.map(async(score,index) => {
+            const par = selectedHoles[0][index].Par;
+            const nbCoups = score;
+            const idTrou = index + 1;
+            const nbPoints = nbCoups - par;
+
+           console.log(score);
+           console.log(par);
+           console.log("--")
+
+            const insertScore = await db.query("INSERT INTO jouer (IdJoueur, AnneeSaison, IdTournoi, Jour, IdParcours, IdTrou, Couleur, nbCoups, nbPoints) VALUES (? , ? , ? , ? , ? , ? , ? , ?, ?)", 
+            [idPlayer, yearTournament, idTournament, 1 ,idParcours, idTrou, holeColor, nbCoups, nbPoints ]);
+
+        })
+
+        res.send({message: "L'insertion s'est déroulée avec succès."});
+    } catch (err) {
+        console.log(err);
+
+        res.send({message: "L'ajout ne s'est pas fait."});
+    } 
+    res.send({message: "L'insertion s'est déroulée avec succès."});
 })
 
 

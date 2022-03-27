@@ -1,7 +1,7 @@
 import React, { useState, useEffect }from 'react';
 import { Link } from 'react-router-dom';
 import { Box } from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
+import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import Axios from 'axios';
 
 export default function PlayerTable() {
@@ -18,7 +18,7 @@ export default function PlayerTable() {
             arrayPlayers.map((player) => {
                 const playerObject = {};
                 
-                playerObject.IdJoueur = player.IdJoueur;
+                playerObject.idJoueur = player.idJoueur;
                 playerObject.nom = player.nom;
                 playerObject.prenom = player.prenom;
                 playerObject.adresse = player.adresse;
@@ -32,7 +32,6 @@ export default function PlayerTable() {
         }
 
         setPlayers(playersInfoCleaned(datas.data));
-
     }, [])
 
     // Fonction pour mettre le numéro de tél au format FR 
@@ -41,7 +40,7 @@ export default function PlayerTable() {
     }
     
     const columns = [
-        {field: 'IdJoueur', headerName: 'Id', flex: 0.5},
+        {field: 'idJoueur', headerName: 'Id', flex: 0.5},
         {field: 'nom', headerName: 'Nom', flex: 0.8},
         {field: 'prenom', headerName: 'Prénom', flex: 0.8},
         {field: 'adresse', headerName: 'Adresse', flex: 1.2 , sortable: false},
@@ -49,7 +48,7 @@ export default function PlayerTable() {
         {field: 'anniversaire', headerName: 'Date de naissance', flex: 0.8},
         {field: "Modification", headerName: "", flex: 0.6, sortable: false, 
             renderCell: (params) => {
-                const idJoueur = params.row.IdJoueur;
+                const idJoueur = params.row.idJoueur;
                 return (
                     <Link 
                         className='edit-link'
@@ -94,12 +93,13 @@ export default function PlayerTable() {
                     columns={columns}
                     pageSize={5}
                     rowsPerPageOptions={[5]}
-                    getRowId={(row) => row.IdJoueur}
+                    getRowId={(row) => row.idJoueur}
                     sx={{
                         backgroundColor: "rgb(168,168,168)",
                         color: "white",
                         fontFamily: 'Poppins, sans-serif'
                     }}
+                    components={{Toolbar: GridToolbar,}}
                 />
             </Box>
 

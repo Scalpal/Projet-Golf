@@ -41,7 +41,7 @@ const getConnection = async () => {
         host: "localhost",
         user: "root",
         password: "root",
-        database: "projet_golf",
+        database: "projet-golf",
     });
     return db;
 };
@@ -59,17 +59,6 @@ function getDatesInRange(startDate, endDate) {
     return dates;
 }
 
-function doTournamentsExist () {
-
-}
-
-function checkDates (datesArray) {
-
-    while(datesArray.length !== 9){
-        datesArray.push(datesArray[datesArray.length-1]);
-    }
-
-}
 
 
 
@@ -182,19 +171,17 @@ app.get("/tournaments", async(req, res) => {
 
         const holes = await db.query("SELECT * FROM trou");
         const holesData = holes[0];
-        const groupedHoles = _.groupBy(holesData, 'IdParcours');
-        const sortedHolesArray = _.values(groupedHoles);
+        const groupedHolesById = _.groupBy(holesData, 'idParcours');
+        const sortedHolesArray = _.values(groupedHolesById);
 
         const sortedArray = await Promise.all(sortedHolesArray.map(async(holesArray) => {
-            const sortedHolesByColor = _.groupBy(holesArray, 'Couleur');
+            const sortedHolesByColor = _.groupBy(holesArray, 'genre');
             const finalArray = _.values(sortedHolesByColor)
 
             return finalArray;
-        }))
+        }));
 
         finalResult.holes = sortedArray;
-
-        console.log(sortedArray);
 
         res.send(finalResult);
     }catch(err){
@@ -218,14 +205,14 @@ app.post("/admin/login", async(req,res) => {
         const login = req.body.login;
         const password = req.body.password;
     
-        const admin = await db.query('SELECT * FROM admin WHERE login= ?', login);
+        const admin = await db.query('SELECT * FROM administrateur WHERE login= ?', login);
         const adminArray = admin[0];
         const adminObject = adminArray[0];
     
         if(adminArray.length > 0){
             bcrypt.compare(password, adminObject.password, async(error, result) => {
                 if(result){
-                    const adminInfo = await db.query('SELECT idAdmin, login FROM admin WHERE idAdmin = ? AND login = ?', [adminObject.idAdmin, adminObject.login]);
+                    const adminInfo = await db.query('SELECT idAdmin, login FROM administrateur WHERE idAdmin = ? AND login = ?', [adminObject.idAdmin, adminObject.login]);
                     const adminInfosObject = adminInfo[0][0];
 
                     req.session.user = adminInfosObject;
@@ -268,14 +255,13 @@ app.post('/admin/logout', (req, res) => {
 })
 
 app.post("/admin/register", async(req,res) => {
-
     const db = await getConnection();
 
     const login = req.body.login;
     const password = req.body.password;
 
     bcrypt.hash(password, saltRounds, async(err, hash) => {
-        const insertQuery = "INSERT INTO admin (login,password) VALUES(?,?)";
+        const insertQuery = "INSERT INTO administrateur (login,mdp) VALUES(?,?)";
 
         try {
             const result = await db.query(insertQuery, [login, hash]);
@@ -283,6 +269,7 @@ app.post("/admin/register", async(req,res) => {
 
         } catch (error) {
             res.send({ message: "ERREUR"})
+            console.log(error)
         }
     });
 });
@@ -290,9 +277,40 @@ app.post("/admin/register", async(req,res) => {
 app.get("/admin/player/list", async(req,res) => {
     const db = await getConnection();
 
-    const players = await db.query('SELECT * FROM joueur');
+    try{
+        const players = await db.query('SELECT * FROM joueur');
 
-    res.send(players[0]);
+        res.send(players[0]);
+    }catch(error){
+        console.log(error);
+    }
+});
+
+app.post("/admin/player/add", async(req, res) => {
+    const db = await getConnection();
+
+    const lastName = req.body.lastName;
+    const firstName = req.body.firstName;
+    const playerAdress = req.body.playerAdress;
+    const playerPhone = req.body.playerPhone;
+    const playerBirthDate = req.body.playerBirthDate;
+
+    const cutBirthDate = playerBirthDate.substr(0,10);
+
+    console.log(lastName);
+    console.log(firstName);
+    console.log(playerAdress);
+    console.log(playerPhone);
+    console.log(cutBirthDate);
+
+    try{
+        const insertQuery = await db.query('INSERT INTO joueur (nom,prenom,adresse,telephone,anniversaire) VALUES (?,?,?,?,?)', [lastName,firstName, playerAdress, playerPhone, cutBirthDate]);
+
+        res.send({message: "L'ajout du joueur s'est déroulé avec succès !"});
+    }catch(error){
+        console.log(error);
+        res.send({message: "Problème dans l'ajout"});
+    }
 });
 
 app.post("/admin/player/edit", async(req, res) => {
@@ -354,7 +372,6 @@ app.post("/admin/tournament/create", async(req, res) => {
         const newEndDate = new Date(year, endDateObject.getMonth(), endDateObject.getDate());
     
         const doTournamentExist = () => {
-
             let check = false;
 
             tournamentData.map((tournament) => {
@@ -386,9 +403,9 @@ app.post("/admin/tournament/create", async(req, res) => {
                 const insertDate = await db.query('INSERT INTO date (AnneeSaison, IdTournoi, Jour, date) VALUES (?, ?, ?, ?)', [year, tournamentId, day, date]);
             });
 
-            res.send({message: "L'ajout s'est déroulé avec succès !"});
+            res.send({message: "L'ajout du tournoi s'est déroulé avec succès !"});
         }else{
-            res.send({message: "Le tournoi pour cette année choisie existe déjà !"});
+            res.send({message: "Le tournoi pour cette année existe déjà !", doExist: true});
         }
     } catch (error) {
         console.log(error);
@@ -405,7 +422,7 @@ app.get("/admin/tournament/addScores", async(req,res) => {
         players: [],
         tournaments: [],
         holes: [],
-        holeColors: []
+        holeGenders: []
     }
 
     const players = await db.query("SELECT * FROM joueur;");
@@ -417,24 +434,31 @@ app.get("/admin/tournament/addScores", async(req,res) => {
 
     finalResult.tournaments = sortedTournaments;
 
-
-
     const holes = await db.query("SELECT * FROM trou");
     const holesData = holes[0]; 
     const groupedHoles = _.groupBy(holesData, 'IdParcours'); // groupage des trous par Parcours
     const sortedHolesArray = _.values(groupedHoles); // Transformation des groupes en tableaux de trous par parcours
 
+    console.log(sortedHolesArray);
+
     // Trous triés par parcours 
     const sortedArray = await Promise.all(sortedHolesArray.map(async(holesArray) => {
-        const sortedHolesByColor = _.groupBy(holesArray, 'Couleur');
+        const sortedHolesByColor = _.groupBy(holesArray, 'genre'); // Groupage des trous qui sont triés par IdParcours, par genre désormais
         const finalArray = _.values(sortedHolesByColor)
 
         return finalArray;
     }));
     finalResult.holes = sortedArray;
 
-    const holeColors = await db.query('SELECT DISTINCT Couleur FROM trou;');
-    finalResult.holeColors = holeColors[0];
+    const holeColors = await db.query('SELECT DISTINCT genre FROM trou');
+    finalResult.holeGenders = holeColors[0];
+
+    console.log(players[0]);
+    console.log(sortedTournaments);
+    // console.log(holes);
+    // console.log(players[0]);
+
+
 
     res.send(finalResult);
 });

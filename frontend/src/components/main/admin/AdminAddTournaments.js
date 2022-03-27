@@ -7,16 +7,26 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import Button from '@mui/material/Button';
+import Alert from '@mui/material/Alert';
+import Slide from '@mui/material/Slide';
 
 function AdminAddTournaments() {
 
     const [tournaments, setTournaments] = useState([]);
     const [seasons, setSeasons] = useState([]);
     const [fiveNextYears, setFiveNextYears] = useState([]);
-    const [message, setMessage] = useState('');
 
     const [yearSelected, setYearSelected] = useState(0);
     const [tournamentSelected, setTournamentSelected] = useState('');
+
+    const [error, setError ] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+
+    const [success, setSuccess ] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
+
+    const [doExist, setDoExist ] = useState(false);
+    const [existMessage, setExistMessage] = useState('');
 
 
 
@@ -28,6 +38,26 @@ function AdminAddTournaments() {
         setTournaments(datas.data.tournaments);
         setFiveNextYears(getFiveNextYear());
     }, [])
+
+    useEffect(() => {
+        if(success){
+            setTimeout(() => {
+                setSuccess(false);
+            }, 3000)
+        }
+
+        if(doExist){
+            setTimeout(() => {
+                setDoExist(false);
+            }, 3000)
+        }
+
+        if(error){
+            setTimeout(() => {
+                setError(false);
+            }, 3000)
+        }
+    }, [success,doExist,error])
 
     function getFiveNextYear() {
         const dateArray = [];
@@ -41,12 +71,25 @@ function AdminAddTournaments() {
     }
 
     async function sendTournament () {
-        const response = await Axios.post('http://localhost:3001/admin/tournament/create', {
-            tournamentName: tournamentSelected,
-            year: yearSelected,
-        });
 
-        setMessage(response.data.message);
+        if(yearSelected && tournamentSelected){
+            const response = await Axios.post('http://localhost:3001/admin/tournament/create', {
+                tournamentName: tournamentSelected,
+                year: yearSelected,
+            });
+            
+            console.log(response.data)
+            if(response.data.doExist){
+                setDoExist(response.data.doExist);
+                setExistMessage(response.data.message)
+            }else{
+                setSuccess(true);
+                setSuccessMessage(response.data.message);
+            }
+        }else{
+            setError(true);
+            setErrorMessage("Veuillez remplir tout les champs.");
+        }
     }
 
     return (
@@ -76,8 +119,6 @@ function AdminAddTournaments() {
                         alignItems: "center",
                     }}  
                 >
-                    {message ? (<h1> {message} </h1>) : null }
-
                     <FormControl
                         sx={{
                             width: "30%",
@@ -90,6 +131,7 @@ function AdminAddTournaments() {
                         id="demo-simple-select"
                         value={tournamentSelected}
                         label="Tournoi"
+                        required
                         onChange={(e) => {setTournamentSelected(e.target.value)}}
                         >
                             {tournaments.map((tournament) => {
@@ -109,11 +151,12 @@ function AdminAddTournaments() {
                     >
                         <InputLabel id="demo-simple-select-label">Année du tournoi</InputLabel>
                         <Select
-                        labelId="demo-simple-select-label"
-                        id="demo-simple-select"
-                        value={yearSelected}
-                        label="Année du tournoi"
-                        onChange={(e) => {setYearSelected(e.target.value)}}
+                            labelId="demo-simple-select-label"
+                            id="demo-simple-select"
+                            value={yearSelected}
+                            label="Année du tournoi"
+                            required={true}
+                            onChange={(e) => {setYearSelected(e.target.value)}}
                         >
                             {fiveNextYears.map((year) => {
                                 const yearSeason = year;
@@ -126,11 +169,81 @@ function AdminAddTournaments() {
                     </FormControl>
 
                     <Button 
-                        variant="outlined"
+                        variant="contained"
+                        color="success"
                         onClick={sendTournament}
                     > 
                         Créer 
                     </Button>
+
+                    {/* {tournaments.map((tournament) => {
+                        return (
+                            <h1> {tournament.nomTournoi} </h1>
+                        )
+                    })} */}
+
+
+                    <Slide
+                        direction="left"
+                        in={success}
+                        mountOnEnter
+                        unmountOnExit
+                    >
+                        <Alert
+                            variant="filled" 
+                            severity="success"
+                            onClose={() => {setSuccess(false)}}
+                            sx={{
+                                position: "absolute",
+                                top: "30px",
+                                right: "30px",
+                              }}
+                        >
+                            {successMessage}
+                        </Alert>
+                    </Slide>
+
+                    <Slide
+                        direction="left"
+                        in={doExist}
+                        transitionD
+                        mountOnEnter
+                        unmountOnExit
+                    >
+                        <Alert
+                            variant="filled" 
+                            severity="warning"
+                            onClose={() => {setDoExist(false)}}
+                            sx={{
+                                position: "absolute",
+                                top: "30px",
+                                right: "30px",
+                              }}
+                        >
+                            {existMessage}
+                        </Alert>
+                    </Slide>
+
+                    <Slide
+                        direction='left'
+                        in={error}
+                        mountOnEnter
+                        unmountOnExit
+                        timeout={1200}
+                    >
+                        <Alert
+                            variant="filled" 
+                            severity="error"
+                            onClose={() => {setError(false)}}
+                            sx={{
+                                position: "absolute",
+                                top: "30px",
+                                right: "30px",
+                              }}
+                        >
+                            {errorMessage}
+                        </Alert>
+                    </Slide>
 
                 </Box>
             </Box>

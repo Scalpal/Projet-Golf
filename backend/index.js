@@ -286,6 +286,18 @@ app.get("/admin/player/list", async(req,res) => {
     }
 });
 
+app.get("/admin/player/add", async(req,res) => {
+    const db = await getConnection();
+
+    try {
+        const genders = await db.query("SELECT DISTINCT genre FROM trou");
+
+        res.send(genders[0]);
+    } catch (error) {
+        console.log(error)
+    }
+});
+
 app.post("/admin/player/add", async(req, res) => {
     const db = await getConnection();
 
@@ -422,7 +434,7 @@ app.get("/admin/tournament/addScores", async(req,res) => {
         players: [],
         tournaments: [],
         holes: [],
-        holeGenders: []
+        playingDates: [],
     }
 
     const players = await db.query("SELECT * FROM joueur;");
@@ -450,18 +462,12 @@ app.get("/admin/tournament/addScores", async(req,res) => {
     }));
     finalResult.holes = sortedArray;
 
-    const holeColors = await db.query('SELECT DISTINCT genre FROM trou');
-    finalResult.holeGenders = holeColors[0];
-
-    console.log(players[0]);
-    console.log(sortedTournaments);
-    // console.log(holes);
-    // console.log(players[0]);
-
-
+    const playingDates = await db.query("SELECT * FROM date");
+    finalResult.playingDates = playingDates[0];
 
     res.send(finalResult);
 });
+
 
 app.post('/admin/tournament/addScores', async(req,res) => {
     const db = await getConnection();
@@ -470,57 +476,67 @@ app.post('/admin/tournament/addScores', async(req,res) => {
     const idTournament = req.body.idTournament;
     const yearTournament = req.body.yearTournament;
     const idPlayer = req.body.idPlayer;
-    const holeColor = req.body.holeColor;
-    const scores = req.body.score;  //Tableau des nombre de coups de chaque trous
-
-    console.log(idTournament)
-    console.log(yearTournament)
-    console.log(idPlayer)
-    console.log(holeColor)
-    console.log(scores)
-
-    const newScores= [];
-    scores.map((score) => {
-        const intScore = parseInt(score);
-        newScores.push(intScore);
-    })
-
-    console.log(newScores);
-
-    const tournament = await db.query('SELECT * FROM tournoi WHERE IdTournoi = ? AND AnneeSaison = ? ', [idTournament, yearTournament]);
-    const tournamentData = tournament[0][0];
-    const dateDebut = tournamentData.dateDebut;
-    const dateFin = tournamentData.dateFin;
-    const idParcours = tournamentData.IdParcours;
+    const scores = req.body.score;  //Tableau d'objet contenant chaque idTrou/jour/score
 
 
-    const selectedHoles = await db.query("SELECT * FROM trou WHERE IdParcours = ? AND Couleur = ? ", [idParcours, holeColor]);
+    // Récupération des scores sur les tournoi du joueur pour vérifier si les scores pour le joueur sur le tournoi choisi
+    // ne sont pas déjà ajoutés
+    const playerAllScores = await db.query('SELECT * FROM Jouer WHERE IdJoueur = ?', idPlayer);
+    const isTournamentAlreadyPlayed = _.find(playerAllScores[0],{IdJoueur: idPlayer, AnneeSaison: yearTournament, IdTournoi: idTournament});
 
-    try {
-        const participate = await db.query("INSERT INTO participer (AnneeSaison, IdTournoi, IdJoueur) VALUES( ? , ? , ?)", [yearTournament, idTournament, idPlayer]);
-        
-        newScores.map(async(score,index) => {
-            const par = selectedHoles[0][index].Par;
-            const nbCoups = score;
-            const idTrou = index + 1;
-            const nbPoints = nbCoups - par;
+    if(isTournamentAlreadyPlayed){
+        res.send({message: "Les scores pour ce joueur ont déjà été ajoutés ! "});
 
-           console.log(score);
-           console.log(par);
-           console.log("--")
+    }else{
 
-            const insertScore = await db.query("INSERT INTO jouer (IdJoueur, AnneeSaison, IdTournoi, Jour, IdParcours, IdTrou, Couleur, nbCoups, nbPoints) VALUES (? , ? , ? , ? , ? , ? , ? , ?, ?)", 
-            [idPlayer, yearTournament, idTournament, 1 ,idParcours, idTrou, holeColor, nbCoups, nbPoints ]);
+        // Tableau des scores triés par jour
+        const groupedScoresByDay = _.groupBy(scores, 'day');
+        const flattenedScoresArray = _.values(groupedScoresByDay);
 
-        })
+        // Récupération du genre du joueur
+        const player = await db.query('SELECT * FROM joueur WHERE idJoueur = ?', idPlayer);
+        const playerObject = player[0][0];
+        const playerGenre = playerObject.genre;
 
-        res.send({message: "L'insertion s'est déroulée avec succès."});
-    } catch (err) {
-        console.log(err);
 
-        res.send({message: "L'ajout ne s'est pas fait."});
-    } 
-    res.send({message: "L'insertion s'est déroulée avec succès."});
+        // Récupération du parcours du tournoi 
+        const tournament = await db.query('SELECT * FROM tournoi WHERE IdTournoi = ? AND AnneeSaison = ? ', [idTournament, yearTournament]);
+        const tournamentData = tournament[0][0];
+        const idParcours = tournamentData.IdParcours;
+
+        // Récupération des trous du tournoi qui correspondent au genre du joueur choisi
+        const selectedHoles = await db.query("SELECT * FROM trou WHERE idParcours = ? AND genre = ? ", [idParcours, playerGenre]);
+        const selectedHolesArray = selectedHoles[0];
+
+        try {
+            flattenedScoresArray.map((day) => {
+                day.map(async(score) => {
+
+                    // Récupération de l'id du trou, le jour ou il a été joué et du nombre de coups réalisés
+                    const holeId = score.idTrou;
+                    const scoreDay = parseInt(score.day);
+                    const nbCoups = parseInt(score.score);
+                
+                    // Récupération du par du trou
+                    const specificHole = _.find(selectedHolesArray, {'IdTrou': holeId});
+                    const par = specificHole.Par;
+
+                    // Calcul des points 
+                    const nbPoints = nbCoups - par;
+
+                    const insertScore = await db.query("INSERT INTO Jouer (IdJoueur, AnneeSaison, IdTournoi, Jour, idParcours, IdTrou, Genre, nbCoups, nbPoints) VALUES (? , ? , ? , ? , ? , ? , ? , ?, ?)", 
+                    [idPlayer, yearTournament, idTournament, scoreDay ,idParcours, holeId, playerGenre, nbCoups, nbPoints ]);
+                    console.log('ajout réussi');
+                })
+            })
+            res.send({message: "L'ajout des scores est un succès !"});
+
+        } catch (error) {
+            console.log(error);
+
+            res.send({message: "Il y a eu un problème dans l'ajout.", error: true});
+        }         
+    }
 })
 
 

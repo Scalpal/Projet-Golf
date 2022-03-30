@@ -5,12 +5,24 @@ const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 
-
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
-
 var _ = require('lodash');
+
+
+app.use(session({
+        key: "admin",
+        secret: "pascalBeaugosse",
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+            expires: 60*60*24*1000,
+            secure: false,
+        },
+    })
+);
+
 
 // Necessary
 app.use(express.json());
@@ -22,18 +34,10 @@ app.use(cors({
 );
 
 app.use(cookieParser());
+
 app.use(bodyParser.urlencoded({extended: true}));
 
-app.use(session({
-        key: "admin",
-        secret: "pascalBeaugosse",
-        resave: false,
-        saveUninitialized: false,
-        cookie: {
-            expires: 60*60*24*1000,
-        },
-    })
-);
+
 
 // Fonction pour créer la connexion avec la base de données
 const getConnection = async () => {
@@ -91,7 +95,6 @@ app.get("/dashboard", async (req, res) => {
             const playerPointsResults = 
             await db.query(`SELECT IdJoueur, SUM(nbCoups) AS nombreCoups, SUM(nbPoints) AS nombrePoints FROM Jouer WHERE AnneeSaison = ${tournamentsResults[0][i].AnneeSaison} AND IdTournoi = ${tournamentsResults[0][i].IdTournoi} GROUP BY IdJoueur ORDER BY SUM(nbPoints) DESC`);
 
-            // console.log(playerPointsResults)
             finalResult.playersPoints.push(playerPointsResults[0]) 
         } 
 
@@ -210,12 +213,13 @@ app.post("/admin/login", async(req,res) => {
         const adminObject = adminArray[0];
     
         if(adminArray.length > 0){
-            bcrypt.compare(password, adminObject.password, async(error, result) => {
+            bcrypt.compare(password, adminObject.mdp, async(error, result) => {
                 if(result){
-                    const adminInfo = await db.query('SELECT idAdmin, login FROM administrateur WHERE idAdmin = ? AND login = ?', [adminObject.idAdmin, adminObject.login]);
+                    const adminInfo = await db.query('SELECT id, login FROM administrateur WHERE id = ? AND login = ?', [adminObject.id, adminObject.login]);
                     const adminInfosObject = adminInfo[0][0];
 
                     req.session.user = adminInfosObject;
+                   
                     res.send(adminInfosObject);
                 }else{
                     res.send({message: "Mauvais login ou mot de passe"});
@@ -231,6 +235,9 @@ app.post("/admin/login", async(req,res) => {
 });
 
 app.get('/admin/login', (req,res) => {
+
+    console.log("la session : ");
+    console.log(req.session);
 
     if(req.session.user){
         res.send({loggedIn: true, user: req.session.user});
@@ -563,8 +570,6 @@ app.post('/admin/tournament/addScores', async(req,res) => {
         }         
     }
 })
-
-
 
 
 app.listen(3001, () => {

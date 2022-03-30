@@ -364,12 +364,15 @@ app.post("/admin/tournament/create", async(req, res) => {
     const tournamentName = req.body.tournamentName;
     const year = req.body.year;
 
+    const allSeasons = await db.query("SELECT * FROM Saison");
+    const allSeasonsData = allSeasons[0];
+
     try {
         const tournaments = await db.query('SELECT * FROM tournoi WHERE nomTournoi = ?', tournamentName);
         const tournamentData = tournaments[0];
 
+
         // Récupération simple des infos du tournoi 
-        const tournamentYear = tournamentData[0].AnneeSaison;
         const tournamentId = tournamentData[0].IdTournoi;
         const tournamentDateBegin = tournamentData[0].dateDebut;
         const tournamentDateEnd = tournamentData[0].dateFin;
@@ -397,10 +400,32 @@ app.post("/admin/tournament/create", async(req, res) => {
             return check;
         }
 
-        const doExist = doTournamentExist();
-        console.log(doExist);
+        const doYearExist = (year) => {
+            let check =  false ;
 
-        if (!doExist){
+            allSeasonsData.map((season) => {
+
+                if(season.AnneeSaison === year){
+                    check = true;
+                    return check;
+                }else{
+                    check=check;
+                }
+            })
+            return check;
+        }
+
+        const doTournamentExists = doTournamentExist();
+        const doYearExists = doYearExist(year);
+
+        console.log(doYearExists)
+
+        if (!doTournamentExists){
+
+            if(!doYearExists){
+                const createSeason = await db.query("INSERT INTO Saison (AnneeSaison) VALUES ( ? )", year);
+            }
+
             const insertTournament = 
             await db.query("INSERT INTO tournoi (AnneeSaison, IdTournoi, nomTournoi, dateDebut, dateFin, IdParcours, lieu, description) VALUES (?,?,?,?,?,?,?,?)", 
             [year, tournamentId, tournamentName, newBeginDate, newEndDate, tournamentIdCourse,tournamentPlace, tournamentDescription]);
@@ -410,7 +435,6 @@ app.post("/admin/tournament/create", async(req, res) => {
     
             dates.map(async(date, index) => {
                 const day = index+1;
-                console.log('ajout dans date !')
     
                 const insertDate = await db.query('INSERT INTO date (AnneeSaison, IdTournoi, Jour, date) VALUES (?, ?, ?, ?)', [year, tournamentId, day, date]);
             });
@@ -419,6 +443,7 @@ app.post("/admin/tournament/create", async(req, res) => {
         }else{
             res.send({message: "Le tournoi pour cette année existe déjà !", doExist: true});
         }
+
     } catch (error) {
         console.log(error);
     }

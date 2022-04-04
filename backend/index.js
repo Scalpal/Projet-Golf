@@ -76,29 +76,178 @@ function getDatesInRange(startDate, endDate) {
 
 
 
+
+
 app.get("/dashboard", async (req, res) => {
     try {
         const finalResult = {
             tournaments: [],
             players: [],
-            playersPoints: [],
+            threeBestPlayers: [],
         }
         const db = await getConnection();
-
-        const tournamentsResults = await db.query("SELECT  * FROM tournoi");
-        finalResult.tournaments = tournamentsResults[0];
-
-        const playerResults = await db.query("SELECT * FROM joueur");
-        finalResult.players = playerResults[0]
         
-        for (let i = 0 ; i < tournamentsResults[0].length ; i++ ){
-            const playerPointsResults = 
-            await db.query(`SELECT IdJoueur, SUM(nbCoups) AS nombreCoups, SUM(nbPoints) AS nombrePoints FROM Jouer WHERE AnneeSaison = ${tournamentsResults[0][i].AnneeSaison} AND IdTournoi = ${tournamentsResults[0][i].IdTournoi} GROUP BY IdJoueur ORDER BY SUM(nbPoints) DESC`);
+        // Récupération des tournois existants
+        const tournamentsData = await db.query("SELECT AnneeSaison, IdTournoi, nomTournoi, dateDebut, dateFin, IdParcours, lieu FROM `tournoi` ORDER BY idTournoi;");
+        const tournaments = tournamentsData[0];
+        finalResult.tournaments = tournaments;
 
-            finalResult.playersPoints.push(playerPointsResults[0]) 
-        } 
+        // Récupération des joueurs
+        const playersData = await db.query("SELECT * FROM joueur");
+        const players = playersData[0];
+        finalResult.players = players;
 
-        res.send(finalResult)
+        // Récupération des participations des joueurs 
+        const tournamentsPlayedData = await db.query("SELECT * FROM participer");
+        const tournamentsPlayed = tournamentsPlayedData[0];
+        finalResult.tournamentsPlayed = tournamentsPlayed;
+
+        const finalArray = await Promise.all(tournaments.map(async(tournament) => {
+            // Récupération de TOUT les scores d'un tournoi
+            const playersScoreForTournament = 
+            await db.query(`SELECT IdJoueur, IdTournoi, AnneeSaison, sum(nbCoups) as nbCoups, sum(nbPoints) as nbPoints FROM Jouer WHERE AnneeSaison = ${tournament.AnneeSaison} AND IdTournoi = ${tournament.IdTournoi} GROUP by IdJoueur ORDER BY sum(nbPoints)`);
+
+            return playersScoreForTournament[0];
+        }))
+        const flattenedArray = _.flatten(finalArray);
+        const sortedArray = _.groupBy(flattenedArray, 'AnneeSaison');
+        const playersScoreSortedByYear = _.values(sortedArray);
+
+        function getInfosPlayer(idJoueur){
+            const specificPlayer = [] 
+        
+            players.map((player) => {
+                if(player.idJoueur === idJoueur){
+                    specificPlayer.push(player)
+                }
+            })
+            return specificPlayer;
+        }
+
+        const newPlayersScores = [];
+
+        // Parcours de tout les scores pour y ajouter le genre sur l'objet récupéré contenant le score
+        playersScoreSortedByYear.map((yearScores) => {
+            yearScores.map((playerScore) => {
+                const playerInfos = getInfosPlayer(playerScore.IdJoueur);
+                const playerGenre = playerInfos[0].genre;
+
+                newPlayersScores.push({...playerScore, genre: playerGenre});
+            })
+        })
+        const groupedNewPlayerScoresByYear = _.groupBy(newPlayersScores,'AnneeSaison');
+        const valuesNewPlayerScoresByYear = _.values(groupedNewPlayerScoresByYear);
+
+        // Scores trié par année; et dans chaque année, par genre (2022 -> homme / femme, etc...)
+        const finalPlayerScoresByGender = [];
+        valuesNewPlayerScoresByYear.map((yearScores) => {
+
+            const groupedYearScoresByGender = _.groupBy(yearScores, 'genre');
+            const valuesYearScoresByGender = _.values(groupedYearScoresByGender);
+
+            finalPlayerScoresByGender.push(valuesYearScoresByGender);
+        })
+
+
+        function getTournamentScoresByYearAndGenre(idTournoi, anneeSaison, playerGenre){
+            const tournamentScores = [];
+    
+            finalPlayerScoresByGender.map((yearScores) => {
+
+                // Parcours des scores par ANNÉE 
+                yearScores.map((genderScores) => {
+
+                    //Parcours des scores de l'année, par GENRE
+                    genderScores.map((score) => {
+                        if(score.IdTournoi === idTournoi && score.AnneeSaison === anneeSaison && score.genre === playerGenre){
+                            tournamentScores.push(score)
+                        }
+                    })
+                })
+            })
+            const tournamentScoresGroupedByYear = _.groupBy(tournamentScores, 'AnneeSaison');
+            const finalArray = _.values(tournamentScoresGroupedByYear);
+    
+            return finalArray;
+        }
+    
+
+        // Fonctions 
+        function getInfosTournoiByIdYear(idTournoi,anneeSaison) {
+            const specificTournament = [];
+    
+            tournaments.map((tournament) => {
+                if( tournament.IdTournoi === idTournoi && tournament.AnneeSaison === anneeSaison ){
+                    specificTournament.push(tournament)
+                }
+            })
+            return specificTournament;
+        }
+
+        function getTournamentsPlayed(playerID) {
+
+            const tournamentsPlayedByPlayer = []
+    
+            tournamentsPlayed.map((participation) => {
+    
+                if(participation.IdJoueur === playerID){
+                    tournamentsPlayedByPlayer.push(participation)
+                }
+            })
+    
+            return tournamentsPlayedByPlayer;
+        }
+        
+        function getTournamentsWon(idJoueur) {
+    
+            const tournamentsWon = [];
+            const checkedTournaments = [];
+    
+            // parcours de tout les tournois joués
+            tournaments.map((tournament) => {
+                
+                const playerInfos = getInfosPlayer(idJoueur);
+                const scoresOfTournament = getTournamentScoresByYearAndGenre(tournament.IdTournoi, tournament.AnneeSaison, playerInfos[0].genre);
+                const sameElt = _.find(checkedTournaments, {'AnneeSaison': tournament.AnneeSaison, 'IdTournoi': tournament.IdTournoi});
+     
+                if (typeof sameElt === 'undefined'){
+    
+                    // parcours des scores du tournoi par année (scores de 2022 puis scores de 2023,...)
+                    scoresOfTournament.map((scores) => { 
+    
+                        const tournamentWinnerID = scores[0].IdJoueur;
+                        const theTournament = getInfosTournoiByIdYear(scores[0].IdTournoi, scores[0].AnneeSaison);
+                        
+                        // Vérification si l'id en paramètre est celui du 1er du tournoi (celui d'index 0) 
+                        if(tournamentWinnerID === idJoueur){
+                            tournamentsWon.push(theTournament[0]);
+                            checkedTournaments.push(tournament); 
+    
+                        }else{
+                            checkedTournaments.push(tournament);
+                        }
+                    })
+                }
+            })
+            return tournamentsWon;
+        }
+        ////
+
+        const allPlayersAndWins = [];
+        const threeBestPlayers = [];
+
+        players.map((player) => {
+            const tournamentsWon = getTournamentsWon(player.idJoueur);
+            const tournamentsPlayed = getTournamentsPlayed(player.idJoueur);
+            allPlayersAndWins.push({...player,wins: tournamentsWon.length, nbParticipations: tournamentsPlayed.length });
+        })
+
+        const orderedAllPlayersAndWins = _.orderBy(allPlayersAndWins, ['wins'], ['desc']);
+        threeBestPlayers.push(orderedAllPlayersAndWins[0],orderedAllPlayersAndWins[1],orderedAllPlayersAndWins[2]);
+
+        finalResult.threeBestPlayers = threeBestPlayers;
+
+        res.send(finalResult);
     }
     catch (err) {
         console.log("ON A UNE ERREUR")
@@ -108,7 +257,7 @@ app.get("/dashboard", async (req, res) => {
 
 
 
-app.get("/tournamentRanking", async (req, res) => {
+app.get("/tournamentRanking/:gender", async (req, res) => {
     try {
         const finalResult = {
             tournaments: [],
@@ -119,33 +268,39 @@ app.get("/tournamentRanking", async (req, res) => {
         }
         const db = await getConnection();
 
-        const tournamentsDistinct = await db.query("SELECT DISTINCT idTournoi, nomTournoi, lieu FROM tournoi");
+        const gender = req.params.gender;
+
+        // Récupération des INFORMATIONS des tournois
+        const tournamentsDistinct = await db.query("SELECT DISTINCT IdTournoi, nomTournoi, lieu FROM tournoi");
         finalResult.tournamentsInfo = tournamentsDistinct[0];
 
+        // Récupération des tournois existants
         const tournaments = await db.query("SELECT AnneeSaison, IdTournoi, nomTournoi, dateDebut, dateFin, IdParcours, lieu FROM `tournoi` ORDER BY idTournoi;");
+        const tournamentsData = tournaments[0];
         finalResult.tournaments = tournaments[0];
 
+        // Récupération des participations des joueurs 
         const tournamentsPlayed = await db.query("SELECT * FROM participer");
         finalResult.tournamentsPlayed = tournamentsPlayed[0];
 
+        // Récupération des joueurs
         const players = await db.query("SELECT * FROM joueur");
         finalResult.players = players[0];
 
-        const tournamentsData = tournaments[0];
 
         const finalArray = await Promise.all(tournamentsData.map(async(tournament) => {
 
+            // Récupération de TOUT les scores d'un tournoi
             const playersScoreForTournament = 
-            await db.query(`SELECT IdJoueur, IdTournoi, AnneeSaison, SUM(nbCoups) AS nombreCoups, SUM(nbPoints) AS nombrePoints FROM Jouer WHERE AnneeSaison = ${tournament.AnneeSaison} AND IdTournoi = ${tournament.IdTournoi} GROUP BY IdJoueur ORDER BY SUM(nbPoints) DESC`);
+            await db.query(`SELECT IdJoueur, IdTrou, IdTournoi, AnneeSaison, nbCoups, nbPoints, genre, jour FROM Jouer WHERE AnneeSaison = ${tournament.AnneeSaison} AND IdTournoi = ${tournament.IdTournoi} AND genre = '${gender}' ORDER BY IdJoueur`);
 
             return playersScoreForTournament[0];
         }))
 
         const flattenedArray = _.flatten(finalArray);
         const sortedArray = _.groupBy(flattenedArray, 'AnneeSaison');
-        const playersScoreSorted = _.values(sortedArray)
-
-        finalResult.playersPoints = playersScoreSorted;
+        const playersScoreSortedByYear = _.values(sortedArray)
+        finalResult.playersPoints = playersScoreSortedByYear;
 
         res.send(finalResult);
     }
@@ -193,6 +348,93 @@ app.get("/tournaments", async(req, res) => {
     }
 })
 
+app.get("/players", async (req, res) => {
+    try {
+        const finalResult = {
+            tournaments: [],
+            tournamentsInfo: [],
+            tournamentsPlayed: [],
+            players: [],
+            allTournamentsScores: [],
+        }
+        const db = await getConnection();
+
+        // Récupération des INFORMATIONS des tournois
+        const tournamentsDistinct = await db.query("SELECT DISTINCT IdTournoi, nomTournoi, lieu FROM tournoi");
+        finalResult.tournamentsInfo = tournamentsDistinct[0];
+
+        // Récupération des tournois existants
+        const tournamentsData = await db.query("SELECT AnneeSaison, IdTournoi, nomTournoi, dateDebut, dateFin, IdParcours, lieu FROM `tournoi` ORDER BY idTournoi;");
+        const tournaments = tournamentsData[0];
+        finalResult.tournaments = tournaments;
+
+        // Récupération des participations des joueurs aux tournois
+        const tournamentsPlayed = await db.query("SELECT * FROM participer");
+        finalResult.tournamentsPlayed = tournamentsPlayed[0];
+
+        // Récupération des joueurs
+        const playersData = await db.query("SELECT * FROM joueur");
+        const players = playersData[0];
+        finalResult.players = players;
+
+
+        const finalArray = await Promise.all(tournaments.map(async(tournament) => {
+
+            // Récupération de TOUT les scores d'un tournoi
+            const playersScoreForTournament = 
+            await db.query(`SELECT IdJoueur, IdTournoi, AnneeSaison,  sum(nbCoups) as nbCoups, sum(nbPoints) as nbPoints FROM Jouer WHERE AnneeSaison = ${tournament.AnneeSaison} AND IdTournoi = ${tournament.IdTournoi} GROUP by IdJoueur ORDER BY sum(nbPoints)`);
+
+            return playersScoreForTournament[0];
+        }))
+        const flattenedArray = _.flatten(finalArray);
+        const sortedArray = _.groupBy(flattenedArray, 'AnneeSaison');
+        const playersScoreSortedByYear = _.values(sortedArray);
+
+        function getInfosPlayer(idJoueur){
+            const specificPlayer = [] 
+        
+            players.map((player) => {
+                if(player.idJoueur === idJoueur){
+                    specificPlayer.push(player)
+                }
+            })
+            return specificPlayer;
+        }
+
+        const newPlayersScores = [];
+
+        // Parcours de tout les scores pour y ajouter le genre sur l'objet récupéré contenant le score
+        playersScoreSortedByYear.map((yearScores) => {
+            yearScores.map((playerScore) => {
+                const playerInfos = getInfosPlayer(playerScore.IdJoueur);
+                const playerGenre = playerInfos[0].genre;
+
+                newPlayersScores.push({...playerScore, genre: playerGenre});
+            })
+        })
+        const groupedNewPlayerScoresByYear = _.groupBy(newPlayersScores,'AnneeSaison');
+        const valuesNewPlayerScoresByYear = _.values(groupedNewPlayerScoresByYear);
+
+        
+        // Scores trié par année; et dans chaque année, par genre (2022 -> homme / femme, etc...)
+        const finalPlayerScoresByGender = [];
+        valuesNewPlayerScoresByYear.map((yearScores) => {
+            const groupedYearScoresByGender = _.groupBy(yearScores, 'genre');
+            const valuesYearScoresByGender = _.values(groupedYearScoresByGender);
+
+            finalPlayerScoresByGender.push(valuesYearScoresByGender);
+        })
+
+        finalResult.allTournamentsScores = finalPlayerScoresByGender;
+
+        res.send(finalResult);
+    }
+    catch (err) {
+        console.log("ON A UNE ERREUR")
+        console.error(err)
+    }
+})
+
 
 
 
@@ -201,6 +443,16 @@ app.get("/tournaments", async(req, res) => {
 
 
 // Admin
+
+app.get('/admin/login', (req,res) => {
+
+    if(req.session.user){
+        res.send({loggedIn: true, user: req.session.user});
+    }else{
+        res.send({loggedIn: false });
+    }
+});
+
 app.post("/admin/login", async(req,res) => {
     try {
         const db = await getConnection();
@@ -234,17 +486,6 @@ app.post("/admin/login", async(req,res) => {
     }
 });
 
-app.get('/admin/login', (req,res) => {
-
-    console.log("la session : ");
-    console.log(req.session);
-
-    if(req.session.user){
-        res.send({loggedIn: true, user: req.session.user});
-    }else{
-        res.send({loggedIn: false });
-    }
-});
 
 app.post('/admin/logout', (req, res) => {
     console.log(req.cookies.admin);
@@ -259,7 +500,7 @@ app.post('/admin/logout', (req, res) => {
             loggedState: false,
         })
     }
-})
+});
 
 app.post("/admin/register", async(req,res) => {
     const db = await getConnection();
@@ -313,17 +554,18 @@ app.post("/admin/player/add", async(req, res) => {
     const playerAdress = req.body.playerAdress;
     const playerPhone = req.body.playerPhone;
     const playerBirthDate = req.body.playerBirthDate;
+    const genre = req.body.genre;
 
     const cutBirthDate = playerBirthDate.substr(0,10);
 
-    console.log(lastName);
-    console.log(firstName);
-    console.log(playerAdress);
-    console.log(playerPhone);
-    console.log(cutBirthDate);
+    // console.log(lastName);
+    // console.log(firstName);
+    // console.log(playerAdress);
+    // console.log(playerPhone);
+    // console.log(cutBirthDate);
 
     try{
-        const insertQuery = await db.query('INSERT INTO joueur (nom,prenom,adresse,telephone,anniversaire) VALUES (?,?,?,?,?)', [lastName,firstName, playerAdress, playerPhone, cutBirthDate]);
+        const insertQuery = await db.query('INSERT INTO joueur (nom,prenom,adresse,telephone,anniversaire,genre) VALUES (?,?,?,?,?,?)', [lastName,firstName, playerAdress, playerPhone, cutBirthDate,genre]);
 
         res.send({message: "L'ajout du joueur s'est déroulé avec succès !"});
     }catch(error){
@@ -517,7 +759,7 @@ app.post('/admin/tournament/addScores', async(req,res) => {
     const isTournamentAlreadyPlayed = _.find(playerAllScores[0],{IdJoueur: idPlayer, AnneeSaison: yearTournament, IdTournoi: idTournament});
 
     if(isTournamentAlreadyPlayed){
-        res.send({message: "Les scores pour ce joueur ont déjà été ajoutés ! "});
+        res.send({message: "Les scores pour ce joueur ont déjà été ajoutés ! ", mediumError: true});
 
     }else{
 
@@ -558,10 +800,9 @@ app.post('/admin/tournament/addScores', async(req,res) => {
 
                     const insertScore = await db.query("INSERT INTO Jouer (IdJoueur, AnneeSaison, IdTournoi, Jour, idParcours, IdTrou, Genre, nbCoups, nbPoints) VALUES (? , ? , ? , ? , ? , ? , ? , ?, ?)", 
                     [idPlayer, yearTournament, idTournament, scoreDay ,idParcours, holeId, playerGenre, nbCoups, nbPoints ]);
-                    console.log('ajout réussi');
                 })
             })
-            res.send({message: "L'ajout des scores est un succès !"});
+            res.send({message: "L'ajout des scores est un succès !", success: true});
 
         } catch (error) {
             console.log(error);

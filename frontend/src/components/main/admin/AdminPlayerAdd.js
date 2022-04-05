@@ -6,23 +6,43 @@ import Grid from '@mui/material/Grid';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import Slide from '@mui/material/Slide';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
 import Axios from 'axios';
 
+import SpecialAlert from './SpecialAlert';
+
 function AdminPlayerAdd() {
+
+  // Datas from database
+  const [ genders, setGenders ] = useState([]); 
 
   const [lastName, setLastName] = useState('');
   const [firstName, setFirstName] = useState('');
   const [adress, setAdress] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [birthDate, setBirthDate] = useState(new Date());
+  const [genderSelected, setGenderSelected] = useState('');
 
-  const [messageSucces, setMessageSucces] = useState('');
+
+  // Alertes 
   const [success, setSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const [messageErreur, setMessageErreur] = useState('');
+  const [mediumError, setMediumError] = useState(false);
+  const [mediumErrorMessage, setMediumErrorMessage] = useState('')
+
   const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
+  useEffect(async() => {
+    const datas = await Axios.get('http://localhost:3001/admin/player/add');
 
+    setGenders(datas.data)
+  },[]);
+
+  console.log(genders);
   useEffect(() => {
     if(success){
         setTimeout(() => {
@@ -30,12 +50,18 @@ function AdminPlayerAdd() {
         }, 3000)
     }
 
+    if(mediumError){
+      setTimeout(() => {
+          setMediumError(false);
+      }, 3000)
+  }
+
     if(error){
         setTimeout(() => {
             setError(false);
         }, 3000)
     }
-  }, [success,error])
+  }, [success,mediumError,error])
 
   // Fonction pour vérifier si une string contient des lettres
   function containsAnyLetter(str) {
@@ -56,10 +82,10 @@ function AdminPlayerAdd() {
 
   const addPlayer = async() => {
 
-    if(lastName.length > 0 && firstName.length > 0 && adress.length > 0 && phoneNumber.length > 0){
+    if(lastName.length > 0 && firstName.length > 0 && adress.length > 0 && phoneNumber.length > 0 && genderSelected.length > 0){
       if(containsAnyLetter(phoneNumber)){
         setError(true);
-        setMessageErreur('Veuillez saisir un numéro de téléphone correct.')
+        setErrorMessage('Veuillez saisir un numéro de téléphone correct.')
       }else{
         if(isOverEighteen(birthDate)){
           const result = await Axios.post("http://localhost:3001/admin/player/add", {
@@ -68,17 +94,18 @@ function AdminPlayerAdd() {
             playerAdress: adress,
             playerPhone: phoneNumber,
             playerBirthDate: birthDate,
+            genre: genderSelected,
           });
           setSuccess(true);
-          setMessageSucces(result.data.message);
+          setSuccessMessage(result.data.message);
         }else{
           setError(true);
-          setMessageErreur('Le joueur doit avoir au moins 18 ans.');
+          setErrorMessage('Le joueur doit avoir au moins 18 ans.');
         }
       }
     }else{
       setError(true);
-      setMessageErreur('Veuillez remplir les champs.');
+      setErrorMessage('Veuillez remplir les champs.');
     }
   };
 
@@ -172,9 +199,34 @@ function AdminPlayerAdd() {
             />
           </Grid>
 
-          <Grid container item xs={12} direction="row" justifyContent="center">
+          <Grid container item xs={6} direction="row" justifyContent="center" sx={{margin: "0 auto"}}>
+            <FormControl
+              sx={{
+                  width: "80%",
+                  marginBottom: "30px",
+              }}
+            >
+              <InputLabel id="demo-simple-select-label">Genre</InputLabel>
+              <Select
+                labelId="demo-simple-select-label"
+                id="demo-simple-select"
+                value={genderSelected}
+                label="Tournoi"
+                required
+                onChange={(e) => {setGenderSelected(e.target.value)}}
+                >
+                  {genders.map((gender) => {
+                    const genre = gender.genre;
+                    return(
+                        <MenuItem value={genre}> {genre} </MenuItem>
+                    )
+                  })}
+              </Select>
+            </FormControl>
+          </Grid>
 
-            {messageErreur.length < 1 ? (
+          <Grid container item xs={12} direction="row" justifyContent="center">
+            {errorMessage.length < 1 ? (
               <Button 
                 variant="contained"
                 color="success"
@@ -197,49 +249,19 @@ function AdminPlayerAdd() {
                 Veuillez remplir les champs
               </Button>
             )}
-      
           </Grid>
         </Grid>
         
-        <Slide
-          direction="left"
-          in={error}
-          mountOnEnter
-          unmountOnExit
-          timeout={1000}
-        >
-          <Alert 
-            variant='filled'
-            severity="error"
-            sx={{
-              position: "absolute",
-              right: "30px",
-              top: "30px",
-            }}
-          >
-            {messageErreur}
-          </Alert>
-        </Slide>
+        <SpecialAlert 
+          success={success}
+          successMessage={successMessage}
 
-        <Slide
-          direction="left"
-          in={success}
-          mountOnEnter
-          unmountOnExit
-          timeout={1000}
-        >
-          <Alert 
-            variant="filled" 
-            severity="success"
-            sx={{
-              position: "absolute",
-              right: "30px",
-              top: "30px",
-            }}
-          >
-            {messageSucces}
-          </Alert>
-        </Slide>
+          mediumError={mediumError}
+          mediumErrorMessage={mediumErrorMessage}
+
+          error={error}
+          errorMessage={errorMessage}
+        />
 
       </Box>
     </Box>

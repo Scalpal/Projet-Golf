@@ -1,8 +1,9 @@
 import React, { useState, useEffect }from 'react';
-import { Link } from 'react-router-dom';
+import { Link , withRouter } from 'react-router-dom';
 import { Box } from '@mui/material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import Axios from 'axios';
+
 
 export default function PlayerTable() {
 
@@ -91,7 +92,7 @@ export default function PlayerTable() {
                 <DataGrid 
                     rows={players}
                     columns={columns}
-                    pageSize={5}
+                    pageSize={10}
                     rowsPerPageOptions={[5]}
                     getRowId={(row) => row.idJoueur}
                     sx={{

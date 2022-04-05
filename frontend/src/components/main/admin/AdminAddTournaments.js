@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-
 import { Box } from '@mui/material';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
@@ -9,6 +8,7 @@ import Select from '@mui/material/Select';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import Slide from '@mui/material/Slide';
+import SpecialAlert from './SpecialAlert';
 
 function AdminAddTournaments() {
 
@@ -19,14 +19,18 @@ function AdminAddTournaments() {
     const [yearSelected, setYearSelected] = useState(0);
     const [tournamentSelected, setTournamentSelected] = useState('');
 
-    const [error, setError ] = useState(false);
-    const [errorMessage, setErrorMessage] = useState('');
+    // Alertes
+
 
     const [success, setSuccess ] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
 
-    const [doExist, setDoExist ] = useState(false);
-    const [existMessage, setExistMessage] = useState('');
+    const [mediumError, setMediumError ] = useState(false);
+    const [mediumErrorMessage, setMediumErrorMessage] = useState('');
+
+    const [error, setError ] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+
 
 
 
@@ -46,9 +50,9 @@ function AdminAddTournaments() {
             }, 3000)
         }
 
-        if(doExist){
+        if(mediumError){
             setTimeout(() => {
-                setDoExist(false);
+                setMediumError(false);
             }, 3000)
         }
 
@@ -57,7 +61,7 @@ function AdminAddTournaments() {
                 setError(false);
             }, 3000)
         }
-    }, [success,doExist,error])
+    }, [success,mediumError,error])
 
     function getFiveNextYear() {
         const dateArray = [];
@@ -80,8 +84,8 @@ function AdminAddTournaments() {
             
             console.log(response.data)
             if(response.data.doExist){
-                setDoExist(response.data.doExist);
-                setExistMessage(response.data.message)
+                setMediumError(response.data.doExist);
+                setMediumErrorMessage(response.data.message)
             }else{
                 setSuccess(true);
                 setSuccessMessage(response.data.message);
@@ -127,13 +131,13 @@ function AdminAddTournaments() {
                     >
                         <InputLabel id="demo-simple-select-label">Tournoi</InputLabel>
                         <Select
-                        labelId="demo-simple-select-label"
-                        id="demo-simple-select"
-                        value={tournamentSelected}
-                        label="Tournoi"
-                        required
-                        onChange={(e) => {setTournamentSelected(e.target.value)}}
-                        >
+                            labelId="demo-simple-select-label"
+                            id="demo-simple-select"
+                            value={tournamentSelected}
+                            label="Tournoi"
+                            required
+                            onChange={(e) => {setTournamentSelected(e.target.value)}}
+                            >
                             {tournaments.map((tournament) => {
                                 const name = tournament.nomTournoi;
                                 return(
@@ -176,74 +180,16 @@ function AdminAddTournaments() {
                         Créer 
                     </Button>
 
-                    {/* {tournaments.map((tournament) => {
-                        return (
-                            <h1> {tournament.nomTournoi} </h1>
-                        )
-                    })} */}
+                    <SpecialAlert 
+                        success={success}
+                        successMessage={successMessage}
 
+                        mediumError={mediumError}
+                        mediumErrorMessage={mediumErrorMessage}
 
-                    <Slide
-                        direction="left"
-                        in={success}
-                        mountOnEnter
-                        unmountOnExit
-                    >
-                        <Alert
-                            variant="filled" 
-                            severity="success"
-                            onClose={() => {setSuccess(false)}}
-                            sx={{
-                                position: "absolute",
-                                top: "30px",
-                                right: "30px",
-                              }}
-                        >
-                            {successMessage}
-                        </Alert>
-                    </Slide>
-
-                    <Slide
-                        direction="left"
-                        in={doExist}
-                        transitionD
-                        mountOnEnter
-                        unmountOnExit
-                    >
-                        <Alert
-                            variant="filled" 
-                            severity="warning"
-                            onClose={() => {setDoExist(false)}}
-                            sx={{
-                                position: "absolute",
-                                top: "30px",
-                                right: "30px",
-                              }}
-                        >
-                            {existMessage}
-                        </Alert>
-                    </Slide>
-
-                    <Slide
-                        direction='left'
-                        in={error}
-                        mountOnEnter
-                        unmountOnExit
-                        timeout={1200}
-                    >
-                        <Alert
-                            variant="filled" 
-                            severity="error"
-                            onClose={() => {setError(false)}}
-                            sx={{
-                                position: "absolute",
-                                top: "30px",
-                                right: "30px",
-                              }}
-                        >
-                            {errorMessage}
-                        </Alert>
-                    </Slide>
+                        error={error}
+                        errorMessage={errorMessage}
+                    />
 
                 </Box>
             </Box>

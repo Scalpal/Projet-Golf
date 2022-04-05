@@ -1,20 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Box } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import Axios from 'axios';
+import FormControl, { useFormControl } from '@mui/material/FormControl';
+import OutlinedInput from '@mui/material/OutlinedInput';
+import Button from '@mui/material/Button';
+import SpecialAlert from './SpecialAlert';
 
 function AdminPlayerEdit() {
 
 
     const { idJoueur } = useParams();
+    const navigate = useNavigate();
+
     const [player, setPlayer] = useState([]);
 
     const [newLastName, setNewLastName] = useState('');
     const [newFirstName, setNewFirstName] = useState('');
     const [newAdress, setNewAdress] = useState('');
     const [newPhone, setNewPhone] = useState('');
-    const [newBirthdate, setNewBirthdate] = useState('');
+
+    // Alertes 
+    const [success, setSuccess] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
+
+    const [mediumError, setMediumError] = useState(false);
+    const [mediumErrorMessage, setMediumErrorMessage] = useState('')
+
+    const [error, setError] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
 
 
     useEffect(async() => {
@@ -23,9 +38,75 @@ function AdminPlayerEdit() {
         });
 
         setPlayer(response.data[0]);
-    }, [])
+    }, []);
 
-    console.log(player)
+    useEffect(() => {
+        if(success){
+            setTimeout(() => {
+                setSuccess(false);
+            }, 3000)
+        }
+    
+        if(mediumError){
+          setTimeout(() => {
+              setMediumError(false);
+          }, 3000)
+      }
+    
+        if(error){
+            setTimeout(() => {
+                setError(false);
+            }, 3000)
+        }
+    }, [success,mediumError,error]);
+
+
+
+    function containsAnyLetter(str) {
+        return /[a-zA-Z]/.test(str);
+    };
+
+
+    async function editPlayer () {
+        if(newLastName !== '' && newFirstName !== '' && newAdress !== '' && newPhone !== ''){
+            if(!containsAnyLetter(newPhone)){
+                const result = await Axios.post('http://localhost:3001/admin/player/edit/confirm', {
+                    idJoueur: idJoueur,
+                    nom: newLastName,
+                    prenom: newFirstName,
+                    adresse: newAdress,
+                    telephone: newPhone,
+                });
+    
+                if(result.data.success){
+                    setSuccess(true);
+                    setSuccessMessage(result.data.message);
+
+                    setTimeout(() => {
+                        navigate('/admin/player/list');
+                    }, 3000)
+                }
+        
+                if(result.data.mediumError){
+                    setMediumError(true);
+                    setMediumErrorMessage(result.data.message);
+                }
+        
+                if(result.data.error){
+                    setError(true);
+                    setErrorMessage(result.data.message);
+                }
+            }else{
+                setError(true);
+                setErrorMessage('Veuillez saisir un numéro de téléphone valide.');
+            }
+        }else{
+            setError(true);
+            setErrorMessage('Veuillez remplir tout les champs.');
+        }
+    }
+
+
     
     if(player){
         return (
@@ -47,38 +128,81 @@ function AdminPlayerEdit() {
                         <li></li>
                     </ul>
 
-                    <Grid container spacing={2}>
+                    <Grid container spacing={2} md={6} sx={{ margin: "0 auto" }} >
                         <Grid item md={6}>
-                            <label for="lastname"> Nom </label>
-                            <input defaultValue={player.nom} id="lastname" onChange={(e) => {setNewLastName(e.target.value)}}/>
+
+                            <FormControl sx={{width: "100%"}}>
+                                <OutlinedInput 
+                                    placeholder={player.nom}
+                                    onChange={(e) => {setNewLastName(e.target.value)}}
+                                    inputProps={{ minLength: 3 ,maxLength : 30}}
+                                    sx={{
+                                        marginBottom: "20px",
+                                    }}
+                                /> 
+                            </FormControl>
                         </Grid> 
 
                         <Grid item md={6}>
-                            <label for="firstname"> Prénom </label>
-                            <input defaultValue={player.prenom} id="firstname" onChange={(e) => {setNewFirstName(e.target.value)}}/>
+                            <FormControl sx={{width: "100%"}}>
+                                <OutlinedInput 
+                                    placeholder={player.prenom} 
+                                    onChange={(e) => {setNewFirstName(e.target.value)}}
+                                    inputProps={{ minLength: 3 ,maxLength : 30}}
+                                    sx={{
+                                        marginBottom: "20px",
+                                    }}
+                                /> 
+                            </FormControl>
                         </Grid>
 
                         <Grid item md={6}>
-                            <label for="adresse"> Adresse </label>
-                            <input defaultValue={player.adresse} id="adresse" onChange={(e) => {setNewAdress(e.target.value)}}/>
+                            <FormControl sx={{width: "100%"}}>
+                                <OutlinedInput 
+                                    placeholder={player.adresse}
+                                    onChange={(e) => {setNewAdress(e.target.value)}}
+                                    inputProps={{ minLength: 8 ,maxLength : 100}}
+                                    sx={{
+                                        marginBottom: "20px",
+                                    }}
+                                /> 
+                            </FormControl>
                         </Grid>
 
                         <Grid item md={6}>
-                            <label for="telephone"> Téléphone </label>
-                            <input defaultValue={player.telephone} id="telephone" onChange={(e) => {setNewPhone(e.target.value)}}/>
+                            <FormControl sx={{width: "100%"}}>
+                                <OutlinedInput 
+                                    placeholder={player.telephone} 
+                                    onChange={(e) => {setNewPhone(e.target.value)}}
+                                    inputProps={{ minLength: 1 ,maxLength : 10}}
+                                    sx={{
+                                        marginBottom: "20px",
+                                    }}
+                                /> 
+                            </FormControl>
                         </Grid>
 
-                        <Grid item md={6}>
-                            <label for="adresse"> Date de naissance </label>
-                            <input type="date" defaultValue={player.anniversaire} id="adresse" onChange={(e) => {setNewBirthdate(e.target.value)}}/>
+                        <Grid item md={6} sx={{ margin: "0 auto" }} >
+                            <Button 
+                                variant="contained"
+                                color="success"
+                                onClick={editPlayer}
+                            >
+                                Confirmer la modification
+                            </Button>
                         </Grid>
                     </Grid>
 
+                    <SpecialAlert 
+                        success={success}
+                        successMessage={successMessage}
 
+                        mediumError={mediumError}
+                        mediumErrorMessage={mediumErrorMessage}
 
-
-
-
+                        error={error}
+                        errorMessage={errorMessage}
+                    />
                 </Box>
             </Box>
         )

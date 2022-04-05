@@ -7,6 +7,7 @@ import Axios from 'axios';
 import { Box, Menu } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import Button from '@mui/material/Button';
+import SpecialAlert from './SpecialAlert';
 import _ from 'lodash'; 
 
 function AdminAddScores() {
@@ -18,6 +19,13 @@ function AdminAddScores() {
     const [ tournamentPlayingDates, setTournamentPlayingDates ] = useState([]);
 
     const [inputList, setInputList] = useState([{idTrou: 1,day: "1", score: 0}]);
+
+    // Alertes 
+    const [success, setSuccess] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
+
+    const [mediumError, setMediumError] = useState(false);
+    const [mediumErrorMessage, setMediumErrorMessage] = useState('')
 
     const [error, setError] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
@@ -37,6 +45,26 @@ function AdminAddScores() {
         setPlayingDates(datas.data.playingDates);
 
     }, [])
+
+    useEffect(() => {
+        if(success){
+            setTimeout(() => {
+                setSuccess(false);
+            }, 3000)
+        }
+
+        if(mediumError){
+            setTimeout(() => {
+                setMediumError(false);
+            }, 3000)
+        }
+
+        if(error){
+            setTimeout(() => {
+                setError(false);
+            }, 3000)
+        }
+    }, [success,mediumError,error])
 
     function handleSelectTournament(tournament) {
         const idTournament = tournament.substr(0,1);
@@ -83,49 +111,6 @@ function AdminAddScores() {
         setInputList(list);
     };
 
-    // function handleInputChange (e, index) {
-    //     const {name , value} = e.target;
-    //     const list = [...inputList];
-
-    //     console.log("jour du input précedent")
-    //     console.log(list[index]?.day);
-
-    //     console.log('--')
-
-    //     console.log('jour du input actuel')
-    //     console.log(list[index]?.day);
-
-    //     console.log('--')
-
-    //     if(list[index].day === "1"){
-
-    //         console.log("je suis dans le premier IF");
-
-    //         list[index][name] = value;
-    //         setInputList(list);
-
-    //     }else{
-    //         console.log("je suis dans le premier ELSE");
-
-    //         console.log(list[index-1].day);
-    //         console.log(list[index].day);
-
-    //         if(list[index-1].day < list[index].day){
-    //             console.log("je suis dans le second IF ");
-
-    //             setError(false);
-    //             setErrorMessage('');
-    //             list[index][name] = value;
-    //             setInputList(list);
-    //         }else{
-    //             console.log("je suis dans le second ELSE");
-
-    //             setError(true);
-    //             setErrorMessage('Un trou ne peut pas être joué de nouveau un jour avant. ')
-    //         }
-    //     }
-    // }
-
     const handleRemoveClick = index => {
         const list = [...inputList];
         list.splice(index, 1);
@@ -156,10 +141,25 @@ function AdminAddScores() {
             score: inputList,
         });
 
-        setErrorMessage(result.data.message);
+        console.log(result)
+
+        if(result.data.success){
+            setSuccess(result.data.success);
+            setSuccessMessage(result.data.message)
+        }
+
+        if(result.data.mediumError){
+            setMediumError(result.data.mediumError);
+            setMediumErrorMessage(result.data.message)
+        }
+
+        if(result.data.error){
+            setError(result.data.error)
+            setErrorMessage(result.data.message);
+        }
     }
 
-    
+    // console.log(mediumError)
     // console.log(playerSelected);
     // console.log(tournamentSelected);
     // console.log(yearSelected);
@@ -177,7 +177,7 @@ function AdminAddScores() {
     return (
         <Box className='admin-addScores'>
             <Box className='inner-container'>
-                <h1 className='main-title' > Ajout des scores d'un tournoi </h1>  
+                <h1 className='main-title' > Ajout des scores </h1>  
 
                 <ul className='separator-list'>
                     <li></li>
@@ -304,7 +304,8 @@ function AdminAddScores() {
                                         backgroundColor: "rgb(181, 181, 181)",
                                         padding: "12px !important",
                                         borderRadius: "15px",
-                                        marginLeft: "15px"
+                                        marginLeft: "15px",
+                                        marginBottom: "15px"
                                     }}
                                 >
                                     <label> Trou n°{index+1} </label>
@@ -329,7 +330,7 @@ function AdminAddScores() {
                                                 disabled
                                                 required
                                             >
-                                                {playingDates.map((date, i) => {
+                                                {tournamentPlayingDates.map((date, i) => {
                                                     const day = date.Jour;
                                                     const specificDate = date.date;
                                                     const specificDateCut = specificDate.substr(0,10);
@@ -353,7 +354,7 @@ function AdminAddScores() {
                                             >
                                                 <option selected="selected"> Choisissez un jour... </option>
 
-                                                {playingDates.map((date, i) => {
+                                                {tournamentPlayingDates.map((date, i) => {
                                                     const day = date.Jour;
                                                     const previousInputDayInt = parseInt(inputList[index-1].day);
 
@@ -379,13 +380,13 @@ function AdminAddScores() {
                                         justifyContent="center"
                                     > 
                                         {inputList.length - 1 === index && 
-                                        inputList.length < 9
+                                        inputList.length < 9 
                                         && (
                                             <Button
                                                 variant="contained"
                                                 color="success"
                                                 onClick={() => {handleAddClick(index)}}
-                                                disabled={!inputList[index].score}
+                                                disabled={!inputList[index].score && inputList[index].score === 0}
                                                 sx={{
                                                     margin: "15px auto 0 auto"
                                                 }}
@@ -399,7 +400,7 @@ function AdminAddScores() {
                         })}
                     </Grid>
 
-                    <h3> {JSON.stringify(inputList)} </h3>
+                    {/* <h3> {JSON.stringify(inputList)} </h3> */}
 
                     <Grid 
                         item 
@@ -411,10 +412,23 @@ function AdminAddScores() {
                         <Button
                             variant="contained"
                             color="success"
-                            // onClick={addScores}
+                            onClick={addScores}
+                            disabled={inputList.length < 9}
                         >
                             Ajouter les scores
                         </Button>
+
+                        
+                        <SpecialAlert 
+                            success={success}
+                            successMessage={successMessage}
+
+                            mediumError={mediumError}
+                            mediumErrorMessage={mediumErrorMessage}
+
+                            error={error}
+                            errorMessage={errorMessage}
+                        />
                     </Grid>
                 </Grid>
             </Box>

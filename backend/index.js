@@ -513,10 +513,10 @@ app.post("/admin/register", async(req,res) => {
 
         try {
             const result = await db.query(insertQuery, [login, hash]);
-            res.send(result);
+            res.send({message: "L'ajout de l'administrateur est un succès ! ", success: true});
 
         } catch (error) {
-            res.send({ message: "ERREUR"})
+            res.send({ message: "Erreur dans l'ajout, veuillez réessayer.", error: true})
             console.log(error)
         }
     });
@@ -585,6 +585,27 @@ app.post("/admin/player/edit", async(req, res) => {
         res.send(player[0]);
     } catch (error) {
         console.log(error)
+    }
+});
+
+app.post("/admin/player/edit/confirm", async(req,res) => {
+    const db = await getConnection();
+
+    const idPlayer = req.body.idJoueur;
+    const newLastName = req.body.nom;
+    const newFirstName = req.body.prenom;
+    const newAdress = req.body.adresse;
+    const newPhone = req.body.telephone;
+
+    try {
+
+        const updateQuery = await db.query('UPDATE joueur SET nom = ?, prenom = ?, adresse = ?, telephone = ? WHERE idJoueur = ?', [newLastName, newFirstName, newAdress, newPhone, idPlayer]);
+        
+        console.log(updateQuery);
+        res.send({success: true, message: "La modification s'est déroulé avec succès !"});
+    } catch (error) {
+        console.log(error);
+        res.send({error: true, message: "Problème dans l'ajout, veuillez réessayer."});
     }
 })
 

@@ -8,6 +8,22 @@ body
   font-family: 'Poppins', 'sans-serif';
 }
 
+* { 
+  -moz-box-sizing: border-box; 
+  -webkit-box-sizing: border-box; 
+   box-sizing: border-box; 
+}
+
+html,body {
+  height:100%;
+}
+
+.center-element
+{
+  display: flex;
+  justify-content: center;
+}
+
 /* Parent global */
 div#root
 {
@@ -30,7 +46,7 @@ div.inner-container
   min-height: 90vh;
   height: fit-content;
   border-radius: 5px;
-  padding: 15px;
+  padding: 15px !important;
   background-color: white;
 
   -webkit-box-shadow: 0px 0px 4px 0px #000000; 
@@ -44,6 +60,7 @@ div.inner-container
 nav
 {
   height: 100vh;
+  max-height: 100vh;
   width: 25%;
   position: sticky;
   top: 0;
@@ -53,24 +70,48 @@ nav
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
+  overflow: auto;
   
   border-right: 2px solid grey;
-  background-color: rgb(121,160,243);
+  background-color: rgb(0,128,0);
+  /* font-family: 'Noto Sans JP', sans-serif; */
 }
 
-nav > div:first-child
+nav
+.icons-text
 {
-  height: 90%;
-
   display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
   align-items: center;
+  justify-content: left;
+  color: white;
+  font-size: 1em;
+  transition: 500ms;
+  border-radius: 15px;
+  padding: 15px 10px;
 }
-nav > div:first-child a 
+
+nav
+.icons-text:hover
 {
-  margin-left: 20px;
+  background-color: rgb(0, 103, 0);
 }
+
+nav
+.icons-text
+.iconify--bx
+{
+  margin-right: 10px;
+}
+
+nav
+.icons-text
+.bx
+{
+  margin-left: 4px;
+  margin-right: 15px;
+  font-size: 1.2em;
+}
+
 
 nav > div:last-child
 {
@@ -80,16 +121,16 @@ nav > div:last-child
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: rgb(58, 118, 247);
+  background-color: rgb(0, 65, 0);
   transition: 500ms;
 }
 nav > div:last-child a
 {
   text-align: center;
 }
-nav > div:last-child:hover
+nav > div:last-child:hover, button.logout-button:hover
 {
-  background-color: rgb(12, 87, 248);
+  background-color: rgb(0, 44, 0);
 }
 
 nav h2
@@ -102,10 +143,11 @@ nav h2
 nav p
 {
   text-align: left;
-  font-weight: normal;
+  font-weight: bold;
   font-size: 1.3em;
   width: 100%;
   color: white;
+  color: rgb(0, 49, 0);
 }
 
 nav a 
@@ -116,6 +158,22 @@ nav a
 
   width: 100%;
   padding: 11px 0;
+}
+
+nav 
+button.logout-button
+{
+  width: 100%;
+  height: 100%;
+  outline: none;
+  border: none;
+  padding: 15px 0;
+  background-color: rgb(0, 65, 0);
+
+  color: white;
+  font-family: 'Poppins', 'sans-serif';
+  font-size: 1.1em;
+  transition: 500ms;
 }
 /*  */
 
@@ -179,9 +237,40 @@ a.home-link
 
 div.dashboard
 {
-  background-color: grey;
   width: 100%;
-  height: 100%;
+
+  background-color: rgb(230, 230, 230);
+  padding: 25px 25px;
+}
+
+div.dashboard
+.card-player-name
+{
+  text-align: center;
+  font-weight: 500;
+  /* font-family: 'Poppins', 'sans-serif'; */
+}
+
+div.dashboard
+.card-player-stats
+{
+  font-size: 1.1em;
+  font-family: 'Noto Sans JP', sans-serif;
+  text-align: center;
+}
+
+div.dashboard
+.card-player-wons
+{
+  text-align: center;
+  padding: 0px 10px 5px 10px;
+  border: 2px solid ;
+  border-radius: 20px;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 1.4em;
+  margin-top: 30px;
+  /* color: black; */
+  background-color: black;
 }
 /*  */
 
@@ -491,7 +580,7 @@ div.card-container > div.card
 
 div.background-color-block-top
 {
-  background-color: rgb(121,160,243);
+  background-color: rgb(0,128,0);
   position: absolute;
   top: 0;
 
@@ -517,7 +606,7 @@ div.placeholder-picture img{
   margin: 0 auto;
   border-radius: 15px;
   z-index: 2;
-  border: 2px solid rgb(121,160,243);
+  border: 2px solid rgb(0,128,0);
 }
 
 
@@ -526,7 +615,7 @@ div.card > div.playerInfos-container
 {
   border-radius: 5px;
   font-family: 'Noto Sans JP', sans-serif;
-  padding: 0 0px 10px 0px;
+  padding: 0;
   text-align: center;
   z-index: 3;
 }
@@ -579,6 +668,7 @@ div.separator
 }
 
 /* Bloc details */
+div.players
 details[open] summary ~ * {
   animation: sweep .5s ease-in-out;
 }
@@ -627,7 +717,6 @@ div.card > details > div.tournamentsWon-container
   font-weight: 500;
   padding: 0 10px;
 }
-
 /*  */
 
 
@@ -645,24 +734,22 @@ div.tournament-card
 {
   border: 2px solid grey;
   border-radius: 15px;
-  background-color: grey;
+  background-color: rgb(179, 179, 179);
 
   margin-left: 10px;
   margin-right: 10px;
   margin-bottom: 20px;
 
-  background-image: url("components/assets/masters-golf.jpeg");
-  background-position: center;
-  background-size: 100% ;
-  background-repeat: no-repeat;
 }
 
 div.tournaments 
-div.tournament-card h2:first-child
+div.tournament-card h2.tournament-card-name
 {
   font-weight: 600;
   text-align: left;
-  color: white;
+  margin-left: 20px;
+  color: white ;
+  font-family: 'Noto sans JP', 'sans-serif';
 }
 
 div.tournaments 
@@ -697,38 +784,145 @@ div.tournament-card p.course-description
   margin: 0 auto;
   width: 80%;
 }
-
+/* Tableau des trous du parcours */
 div.tournaments 
 table
 {
   border: 2px solid black;
   border-spacing: 0;
+  margin: 30px auto;
 }
 
 div.tournaments 
 th 
 {
   border: 2px solid black;
+  background-color: grey;
   min-width: 80px;
+  padding: 5px 8px ;
 }
 
 div.tournaments 
 td
 {
   text-align: center;
-  border: 2px solid rgb(121,160,243);
+  border: 2px solid black;
 }
 /*  */
 
 
+
+
+
+
+/* Partie admin */
+
+/* Admin player list page */
+.edit-link
+{
+  transition: 500ms;
+}
+
+.edit-link:hover
+{
+  background-color: rgb(95, 95, 95) !important;
+}
+/*  */
+
+
+/* Admin add player page */
+input.player-tel-input, input.player-birthdate-input
+{
+  padding: 15px 15px;
+  font-size: 1em;
+  border: 1px solid rgb(168, 168, 168);
+  border-radius: 5px;
+  width: 100%;
+  margin-bottom: 20px;
+}
+/*  */
+
+
+/* admin Login page */
+.login-page
+{
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  flex: 1;
+}
+
+.login-page-form
+{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: auto auto;
+  width: 45%;
+}
+/*  */
+
+
+
 /* addAdmin page */
-div.addAdmin 
+.container-fluid.admin-register
 {
   width: 100%;
 
   background-color: rgb(230, 230, 230);
   padding: 25px 25px;
 }
+/*  */
+
+/* addScores page */
+div.admin-addScores
+{
+  width: 100%;
+
+  background-color: rgb(230, 230, 230);
+  padding: 25px 25px;
+}
+
+div.admin-addScores 
+form
+{
+  display: flex;
+  flex-direction: column;
+  margin-right: 100px 
+}
+
+.input-number-score, .input-select-score
+{
+  border: 2px solid transparent;
+  padding: 5px 10px;
+  border-radius: 5px;
+  outline: none;
+  font-family: 'Poppins', 'sans-serif';
+}
+
+.input-number-score
+{
+  margin-bottom: 20px;
+}
+
+.input-number-score:focus, 
+.input-select-score:focus, 
+.select-tournament-score:focus,
+.select-tournament-score:active,
+.select-player-score:focus,
+.select-player-score:active
+{
+  border: 2px solid green;
+}
+
+.select-tournament-score
+{
+  padding: 10px 10px;
+  border: 1px solid rgb(196, 196, 196);
+  border-radius: 5px;
+  font-size: 0.9em;
+}
+
 /*  */
 
 

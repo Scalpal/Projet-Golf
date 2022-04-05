@@ -212,38 +212,7 @@ function TournamentRanking () {
     }
 
     
-
-
-    // function getCountWins(idJoueur) {
-
-    //     let countWins = 0;
-    //     const checkedArrays = []
-      
-    //     // parcours de tout les tournois joués
-    //     tournaments.map((tournament) => {
-
-    //         const scoresByTournament = filterPlayersScoreByYear(tournament.IdTournoi);
-    //         const sameElt = _.find(checkedArrays, {'AnneeSaison': tournament.AnneeSaison, 'IdTournoi': tournament.IdTournoi});
-
-    //         if (typeof sameElt === 'undefined'){
-
-    //             // parcours des scores du tournoi par année (2022 puis 2023,...)
-    //             scoresByTournament.map((score) => {
-
-    //                 const tournamentWinnerID = score[0].IdJoueur;
-
-    //                 // Vérification si l'id en paramètre est celui du 1er du tournoi (celui d'index 0) 
-    //                 if(tournamentWinnerID === idJoueur){
-    //                     countWins = countWins + 1;
-    //                     checkedArrays.push(score[0]) 
-    //                 }else{
-    //                     checkedArrays.push(score[0]) 
-    //                 }
-    //             })
-    //         }
-    //     })
-    //     return countWins;
-    // }
+    console.log(sumOfScores)
 
 
 
@@ -264,12 +233,14 @@ function TournamentRanking () {
 
     // console.log(activeCategory)
 
-    console.log(playerStats);
+    // console.log(playerStats);
 
+    console.log(sumOfScores);
+    
     return (
         <div className='tournamentRanking'>
             <div className='inner-container'>
-                <h1 className='main-title'> Classements par tournoi catégorie {gender}</h1>
+                <h1 className='main-title'> Classements : Catégorie {gender}</h1>
 
                 <ul className='separator-list'>
                     <li></li>
@@ -338,7 +309,6 @@ function TournamentRanking () {
                                             const playerInfoArray = getInfosPlayer(playerScore.IdJoueur);
                                             const playerInfo = playerInfoArray[0];
 
-
                                             const dayScoresOfPlayer = getPlayerScoresByDay(index,playerScore.IdJoueur);
 
                                             return (
@@ -352,13 +322,13 @@ function TournamentRanking () {
                                                             })
                                                         }
                                                     >
-                                                    <div className='TR-row'>
-                                                        <h4><strong>{rank+1}</strong></h4>
-                                                        <h4> {playerInfo.nom} {playerInfo.prenom} </h4>
-                                                        <h4> {playerScore.nbCoups} </h4>
-                                                        <h4> {playerScore.nbPoints} </h4>
-                                                
-                                                    </div> 
+                                                        <div className='TR-row'>
+                                                            <h4><strong>{rank+1}</strong></h4>
+                                                            <h4> {playerInfo.nom} {playerInfo.prenom} </h4>
+                                                            <h4> {playerScore.nbCoups} </h4>
+                                                            <h4> {playerScore.nbPoints} </h4>
+                                                    
+                                                        </div> 
                                                     </HtmlTooltip>
                                                 </React.Fragment>
                                             )

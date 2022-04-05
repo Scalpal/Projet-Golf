@@ -15,18 +15,17 @@ function Players () {
     const [ tournaments, setTournaments] = useState([]);
     const [ tournamentsInfo, setTournamentsInfo ] = useState([]);
     const [ tournamentsPlayed, setTournamentsPlayed ] = useState([]);
+    const [allTournamentsScores, setAllTournamentsScores] = useState([]);
     const [ searchedName, setSearchedName ] = useState('');
  
     useEffect( async() => {
-
-        const datas = await Axios.get('http://localhost:3001/tournamentRanking');
+        const datas = await Axios.get('http://localhost:3001/players');
 
         setPlayers(datas.data.players);
-        setPlayerStats(datas.data.playersPoints);
         setTournaments(datas.data.tournaments);
         setTournamentsInfo(datas.data.tournamentsInfo);
         setTournamentsPlayed(datas.data.tournamentsPlayed);
-
+        setAllTournamentsScores(datas.data.allTournamentsScores)
     }, [])
 
     function filterPlayerStatsByYear(idTournoi) {
@@ -34,7 +33,7 @@ function Players () {
 
         playerStats.map((array) => {
             array.map((player) => {
-                if(player.IdTournoi.includes(idTournoi)){
+                if(player.IdTournoi === idTournoi){
                     filteredPlayerStats.push(player)
                 }
             })
@@ -44,38 +43,6 @@ function Players () {
         const finalArray = _.values(sortedArray)
 
         return finalArray;
-    }
-
-    function getTournamentsWon(idJoueur) {
-
-        const tournamentsWon = []
-        const checkedArrays = []
-      
-        // parcours de tout les tournois joués
-        tournaments.map((tournament) => {
-
-            const scoresByTournament = filterPlayerStatsByYear(tournament.IdTournoi);
-            const sameElt = _.find(checkedArrays, {'AnneeSaison': tournament.AnneeSaison, 'IdTournoi': tournament.IdTournoi});
-
-            if (typeof sameElt === 'undefined'){
-
-                // parcours des scores du tournoi par année (2022 puis 2023,...)
-                scoresByTournament.map((score) => {
-
-                    const tournamentWinnerID = score[0].IdJoueur;
-                    const theTournament = getInfosTournoiByIdYear(score[0].IdTournoi, score[0].AnneeSaison);
-                    
-                    // Vérification si l'id en paramètre est celui du 1er du tournoi (celui d'index 0) 
-                    if(tournamentWinnerID === idJoueur){
-                        tournamentsWon.push(theTournament[0]);
-                        checkedArrays.push(score[0]) 
-                    }else{
-                        checkedArrays.push(score[0]) 
-                    }
-                })
-            }
-        })
-        return tournamentsWon;
     }
 
     function isValueContained (stringToTest,secondString, inputValue) {
@@ -93,19 +60,19 @@ function Players () {
 
         const style = {};
 
-        if (tournamentID === "1" ){
+        if (tournamentID === 1 ){
             style.backgroundColor = "rgb(39,93,50)"
             style.borderRadius = "15px";
             style.padding = "5px 10px";
             style.color = "white";
             style.marginBottom = "15px";
-        }else if(tournamentID === "2"){
+        }else if(tournamentID === 2){
             style.backgroundColor = "rgb(6,23,84)"
             style.borderRadius = "15px";
             style.padding = "5px 10px";
             style.color = "white";
             style.marginBottom = "15px";
-        }else if (tournamentID === "3"){
+        }else if (tournamentID === 3){
             style.backgroundColor = "rgb(20,55,114)"
             style.borderRadius = "15px";
             style.padding = "5px 10px";
@@ -122,13 +89,74 @@ function Players () {
         return style;
     }
 
+    // Fonction pour mettre le numéro de tél au format FR 
+    function formatFrenchPhoneNumber(number) {
+        return number.split('').join(' ').replace(/([0-9]) ([0-9])\b/g, '$1$2');
+    }
+
+
+    function getTournamentScoresByYearAndGenre(idTournoi, anneeSaison, playerGenre){
+        const tournamentScores = [];
+
+        allTournamentsScores.map((yearScores) => {
+
+            // Parcours des scores par ANNÉE 
+            yearScores.map((genderScores) => {
+
+                //Parcours des scores de l'année, par GENRE
+                genderScores.map((score) => {
+                    if(score.IdTournoi === idTournoi && score.AnneeSaison === anneeSaison && score.genre === playerGenre){
+                        tournamentScores.push(score)
+                    }
+                })
+            })
+        })
+        const tournamentScoresGroupedByYear = _.groupBy(tournamentScores, 'AnneeSaison');
+        const finalArray = _.values(tournamentScoresGroupedByYear);
+
+        return finalArray;
+    }
+
+    function getTournamentsWon(idJoueur) {
+
+        const tournamentsWon = [];
+        const checkedTournaments = [];
+
+        // parcours de tout les tournois joués
+        tournaments.map((tournament) => {
+            
+            const playerInfos = getInfosPlayer(idJoueur);
+            const scoresOfTournament = getTournamentScoresByYearAndGenre(tournament.IdTournoi, tournament.AnneeSaison, playerInfos[0].genre);
+            const sameElt = _.find(checkedTournaments, {'AnneeSaison': tournament.AnneeSaison, 'IdTournoi': tournament.IdTournoi});
+ 
+            if (typeof sameElt === 'undefined'){
+
+                // parcours des scores du tournoi par année (scores de 2022 puis scores de 2023,...)
+                scoresOfTournament.map((scores) => { 
+
+                    const tournamentWinnerID = scores[0].IdJoueur;
+                    const theTournament = getInfosTournoiByIdYear(scores[0].IdTournoi, scores[0].AnneeSaison);
+                    
+                    // Vérification si l'id en paramètre est celui du 1er du tournoi (celui d'index 0) 
+                    if(tournamentWinnerID === idJoueur){
+                        tournamentsWon.push(theTournament[0]);
+                        checkedTournaments.push(tournament); 
+
+                    }else{
+                        checkedTournaments.push(tournament);
+                    }
+                })
+            }
+        })
+        return tournamentsWon;
+    }
 
     // Fonction GET
     function getInfosTournoiByIdYear(idTournoi,anneeSaison) {
-        const specificTournament = []
+        const specificTournament = [];
 
         tournaments.map((tournament) => {
-            if( tournament.IdTournoi.includes(idTournoi) && tournament.AnneeSaison === (anneeSaison) ){
+            if( tournament.IdTournoi === idTournoi && tournament.AnneeSaison === anneeSaison ){
                 specificTournament.push(tournament)
             }
         })
@@ -141,7 +169,7 @@ function Players () {
 
         tournamentsPlayed.map((participation) => {
 
-            if(participation.IdJoueur.includes(playerID)){
+            if(participation.IdJoueur === playerID){
                 tournamentsPlayedByPlayer.push(participation)
             }
         })
@@ -149,15 +177,19 @@ function Players () {
         return tournamentsPlayedByPlayer;
     }
 
-
-    // Fonction pour mettre le numéro de tél au format FR 
-    function formatFrenchPhoneNumber(number) {
-        return number.split('').join(' ').replace(/([0-9]) ([0-9])\b/g, '$1$2');
+    function getInfosPlayer(idJoueur){
+        const specificPlayer = [] 
+    
+        players.map((player) => {
+            if(player.idJoueur === idJoueur){
+                specificPlayer.push(player)
+            }
+        })
+        return specificPlayer;
     }
 
 
-    console.log(tournamentsPlayed)
-
+    console.log(allTournamentsScores);
 
     return (
 
@@ -187,14 +219,12 @@ function Players () {
 
 
                     {players.map((player) => {
-                        const tournamentsWon = getTournamentsWon(player.IdJoueur);
-                        const tournamentsPlayed = getTournamentsPlayed(player.IdJoueur);
+                   
+                        const tournamentsWon = getTournamentsWon(player.idJoueur);
+                        const tournamentsPlayed = getTournamentsPlayed(player.idJoueur);
 
                         const phoneNumberFr = formatFrenchPhoneNumber(player.telephone);
-                        // const adresse = player.adresse;
-                        // const birthDate = player.anniversaire.substr(0,10);
-                        // const playerInfos = adresse + "<br/>" + phoneNumberFr + "<br/>" + birthDate;
-
+               
                         return(
                             isValueContained(player.nom, player.prenom, searchedName) ? (
                                 <Tilt 
@@ -205,7 +235,8 @@ function Players () {
                                     perspective={1000}
                                     transitionSpeed={1000}
                                     scale={1.050}
-                                    gyroscope={true}                              
+                                    gyroscope={true}  
+                                    data-tip="hello world"                            
                                 >
                                     <div className='background-color-block-top'></div>
 
@@ -220,6 +251,7 @@ function Players () {
                                         <h3> <i class='bx bxs-phone'></i> {phoneNumberFr} </h3>
                                         <h3> <i class='bx bx-calendar-plus'></i> {player.anniversaire.substr(0,10)} </h3>
                                         <h3> Nombre de participations à des tournois : {tournamentsPlayed.length} </h3>
+                                        <h3> Nombre de victoires : {tournamentsWon.length} </h3>
                                     </div>
 
                                     <div className='separator'></div>

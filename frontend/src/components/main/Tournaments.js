@@ -22,19 +22,18 @@ function Tournaments () {
 
     }, [])
 
+    // console.log(holes)
 
-    function orderByColors(holeArray) {
-        const arrayOrderedByColors = [];
+
+    function orderByGender(holeArray) {
+        const arrayOrderedByGender = [];
 
         if(holeArray){
-            arrayOrderedByColors.push(holeArray[3]);
-            arrayOrderedByColors.push(holeArray[0]);
-            arrayOrderedByColors.push(holeArray[2]);
-            arrayOrderedByColors.push(holeArray[1]);
-            arrayOrderedByColors.push(holeArray[4]);
+            arrayOrderedByGender.push(holeArray[1]);
+            arrayOrderedByGender.push(holeArray[0]);
         }
 
-        return arrayOrderedByColors;
+        return arrayOrderedByGender;
     }
 
     // const listepopo = ['caca', "pipi", "popo", "squid"];
@@ -45,6 +44,7 @@ function Tournaments () {
     // console.log(courses)
     // console.log(tournaments)
     // console.log(holes[0])
+
 
     return (
 
@@ -61,24 +61,28 @@ function Tournaments () {
                 {tournaments.map((tournament) => {
 
                     //Parcours du tournoi 
-                    const tournamentCourseArray = _.filter(courses, {'IdParcours': tournament.IdParcours});
+                    const tournamentCourseArray = _.filter(courses, {'idParcours': tournament.IdParcours});
                     const tournamentCourse = tournamentCourseArray[0];
 
                     const courseHoles = [];
 
                     holes.map((courseHolesArray) => {
-                        if(courseHolesArray[0][0].IdParcours.includes(tournament.IdParcours)){
+                        if(courseHolesArray[0][0].idParcours.includes(tournament.IdParcours)){
                             courseHoles.push(courseHolesArray)
                         }
                     })
 
-                    //Trous du parcours triés par couleur 
+                    //Trous du parcours triés par genre 
                     const courseHolesContent = courseHoles[0];
-                    const holesSortedByColor = orderByColors(courseHolesContent);
+                    const holesSortedByGender = orderByGender(courseHolesContent);
+
+                    console.log(holesSortedByGender);
+
 
                     return (
                         <div className="tournament-card" key={tournament.idTournoi}>
-                            <h2> {tournament.nomTournoi} </h2>
+                            
+                            <h2 className='tournament-card-name' > {tournament.nomTournoi} </h2>
 
                             {/* <h3> {tournamentCourse?.NomParcours} </h3>  */}
 
@@ -93,7 +97,6 @@ function Tournaments () {
 
                                 <table>
                                     <thead>
-                                        <th> Couleur </th>
                                         <th> Genre </th>
                                         <th> 1 </th>
                                         <th> 2 </th>
@@ -107,19 +110,15 @@ function Tournaments () {
                                     </thead>
 
                                     <tbody>
-                                        {holesSortedByColor?.map((color) => {
-                                            const hole = color[0];
-
-                                            console.log("trou de couleur :")
-                                            console.log(color);
+                                        {holesSortedByGender?.map((gender) => {
+                                            const hole = gender[0];
 
                                             return(
                                                 <React.Fragment>
                                                     <tr>
-                                                        <td> {hole.Couleur} </td>
                                                         <td> {hole.genre} </td>
 
-                                                        {color.map((holes) => {
+                                                        {gender.map((holes) => {
                                                             return (
                                                                 <React.Fragment>
                                                                     <td> 
@@ -131,8 +130,8 @@ function Tournaments () {
                                                         })}
                                                     </tr> 
                                                     <tr>
-                                                        <td colSpan={2}> Par </td>
-                                                        {color.map((holes) =>{
+                                                        <td colSpan={1}> Par </td>
+                                                        {gender.map((holes) =>{
                                                             return (
                                                                 <td> {holes.Par} </td>
                                                             )
